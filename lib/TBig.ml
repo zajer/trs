@@ -29,22 +29,21 @@ let gen_iso_r1_t' ~num_of_nodes_in_c:c_n_n ~num_of_nodes_in_reactum:r1_n_n =
   IntSet.fold (fun i res -> Iso.add i (i+c_n_n) res) (IntSet.of_int r1_n_n) Iso.empty 
 let gen_iso_d_t' ~num_of_nodes_in_c:c_n_n ~num_of_nodes_in_reactum:r1_n_n ~num_of_nodes_in_d:d_n_n=
   IntSet.fold (fun i res -> Iso.add i (i+c_n_n+r1_n_n) res) (IntSet.of_int d_n_n) Iso.empty 
-    
 let create_fun_of_residue ~iso_c_in_t'_2_t:i_c_t' ~iso_d_in_t'_2_t:i_d_t' f_r1_in_t'_2_t=
     let l_f_r1_t' = Fun.to_list f_r1_in_t'_2_t
     and l_i_c_t' = Iso.to_list i_c_t'
     and l_i_d_t' = Iso.to_list i_d_t'
     in
       Fun.of_list (l_f_r1_t'@l_i_c_t'@l_i_d_t')
-let prepare_fun_of_residue ~(c:Big.t) ~(r1:Big.t) ~(d:Big.t) ~iso_p2t_n:i_n ~iso_t2c_n:i_t2c ~iso_t2d_n:i_t2d f_r1_r0=
+let prepare_fun_of_residue ~c_n_n ~r1_n_n ~d_n_n ~iso_p2t_n:i_n ~iso_t2c_n:i_t2c ~iso_t2d_n:i_t2d f_r1_r0=
   let f_r1_t = transform_fun_codom f_r1_r0 (Iso.inverse i_n)
   and i_r1_t' = gen_iso_r1_t' 
-    ~num_of_nodes_in_c:(Nodes.size c.n) 
-    ~num_of_nodes_in_reactum:(Nodes.size r1.n)
+    ~num_of_nodes_in_c:c_n_n
+    ~num_of_nodes_in_reactum:r1_n_n
   and i_d_t' = gen_iso_d_t' 
-    ~num_of_nodes_in_c:(Nodes.size c.n) 
-    ~num_of_nodes_in_reactum:(Nodes.size r1.n) 
-    ~num_of_nodes_in_d:(Nodes.size d.n)
+    ~num_of_nodes_in_c:c_n_n 
+    ~num_of_nodes_in_reactum:r1_n_n 
+    ~num_of_nodes_in_d: d_n_n
   in
     let i_c_in_t'_2_t = Iso.inverse i_t2c
     and i_d_in_t'_2_t = transform_iso_dom ~transformed:(Iso.inverse i_t2d) ~applied:i_d_t'
@@ -59,7 +58,7 @@ let basic_rewrite (i_n, i_e, f_e) ~t ~r0 ~r1 f_r1_r0 =
   let (c, d, id, i_t2c, i_t2d) = decomp ~target:t ~pattern:r0 ~i_n ~i_e f_e 
   in
     let res_big = Big.comp c (Big.comp (Big.tens r1 id) d)
-    and fun_residue = prepare_fun_of_residue ~c ~r1 ~d ~iso_p2t_n:i_n ~iso_t2c_n:i_t2c ~iso_t2d_n:i_t2d f_r1_r0
+    and fun_residue = prepare_fun_of_residue ~c_n_n:(Nodes.size c.n) ~r1_n_n:(Nodes.size r1.n) ~d_n_n:(Nodes.size d.n) ~iso_p2t_n:i_n ~iso_t2c_n:i_t2c ~iso_t2d_n:i_t2d f_r1_r0
       in
       res_big,fun_residue
 let rewrite (i_n, i_e, f_e) ~target ~r0 ~r1 ~f_s:eta ~f_r1_r0 =
