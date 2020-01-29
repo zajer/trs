@@ -33,8 +33,12 @@ let test_transform_dom_2 _ =
     let res = TBig.transform_fun_dom f i
     in
     assert_equal exp_res res
-
-
+(*let test_create_fun_of_residue _ =
+  let i_c2t = Iso.empty |> Iso.add 0 0 |> Iso.add 1 1 
+  and i_r12t = Iso.empty |> Iso.add 0 2 |> Iso.add 1 3 |> Iso.add 2 4
+  and i_d2t = Iso.empty |> Iso.add 0 5 |> Iso.add 1 6 
+  in
+    *)
 let suite =
   "TBig tests" >::: [
     "Transform codom 1">:: test_transform_codom_1;
