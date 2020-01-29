@@ -1,7 +1,7 @@
 (
     tests
     (names 
-        example_tests
+        TBig_tests
     ) 
     (libraries tracking_bigraph oUnit )
 )

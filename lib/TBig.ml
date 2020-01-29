@@ -1,57 +1,67 @@
 open Bigraph
 
 let decomp ~(target:Big.t) ~(pattern:Big.t) ~i_n:i_n ~i_e:i_e f_e =
-  let (p_c, p_d, p_id, i_c, i_d) = Place.decomp ~target:target.p ~pattern:pattern.p i_n in
-  let (l_c, l_d, l_id) = Link.decomp ~target:target.l ~pattern:pattern.l ~i_e ~i_c ~i_d f_e
-  and (n_c, n_d) = (Nodes.apply i_c target.n, Nodes.apply i_d target.n) 
+  let (p_c, p_d, p_id, i_t2c, i_t2d) = Place.decomp ~target:target.p ~pattern:pattern.p i_n in
+  let (l_c, l_d, l_id) = Link.decomp ~target:target.l ~pattern:pattern.l ~i_e ~i_c:i_t2c ~i_d:i_t2d f_e
+  and (n_c, n_d) = (Nodes.apply i_t2c target.n, Nodes.apply i_t2d target.n) 
   in
     let c = { Big.p = p_c; l = l_c; n = n_c }
       and d = { Big.p = p_d; l = l_d; n = n_d }
       and id = { Big.p = p_id; l = l_id; n = Nodes.empty }
     in
-      c,d,id,i_c,i_d
+      c,d,id,i_t2c,i_t2d
 
-let transform_codom f i = 
+let transform_fun_codom f i = 
   let id_dom = IntSet.fold (fun i res -> Iso.add i i res) (Fun.dom f) Iso.empty
   in
     Fun.transform ~iso_dom:id_dom ~iso_codom:i f
-let transform_dom f i = 
+let transform_fun_dom f i = 
     let id_codom = IntSet.fold (fun i res -> Iso.add i i res) (Fun.codom f) Iso.empty
     in
       Fun.transform ~iso_dom:i ~iso_codom:id_codom f
-let gen_iso_c_s' c_n_n =
-  IntSet.fold (fun i res -> Iso.add i i res) (IntSet.of_int c_n_n) Iso.empty 
+let transform_iso_dom ~transformed:i_2transform ~applied:i_2apply =
+  let id_codom = List.fold_left (fun res i -> Iso.add i i res) Iso.empty (Iso.codom i_2transform)
+    in
+      Iso.transform ~iso_dom:i_2apply ~iso_codom:id_codom i_2transform
+let gen_iso_c_s' i_t2c =
+  Iso.inverse i_t2c
 let gen_iso_r1_s' ~num_of_nodes_in_c:c_n_n ~num_of_nodes_in_reactum:r1_n_n = 
   IntSet.fold (fun i res -> Iso.add i (i+c_n_n) res) (IntSet.of_int r1_n_n) Iso.empty 
-let gen_iso_d_s' ~num_of_nodes_in_c:c_n_n ~num_of_nodes_in_reactum:r1_n_n ~num_of_nodes_in_d:d_n_n =
-  IntSet.fold (fun i res -> Iso.add i (i+c_n_n+r1_n_n) res) (IntSet.of_int d_n_n) Iso.empty 
-let gen_fun_of_residue ~iso_c_s':i_c_s' ~iso_r1_s':i_r1_s' ~iso_d_s':i_d_s' f_r1_s=
-  let tmp = transform_dom f_r1_s i_r1_s'
+let gen_iso_d_s' ~num_of_nodes_in_c:c_n_n ~num_of_nodes_in_reactum:r1_n_n ~num_of_nodes_in_d:d_n_n i_t2d=
+  let applied = IntSet.fold (fun i res -> Iso.add i (i+c_n_n+r1_n_n) res) (IntSet.of_int d_n_n) Iso.empty 
+  in
+    transform_iso_dom ~transformed:(Iso.inverse i_t2d) ~applied
+    
+let create_fun_of_residue ~iso_c_t':i_c_t' ~iso_r1_t':i_r1_t' ~iso_d_t':i_d_t' f_r1_t=
+  let tmp = transform_fun_dom f_r1_t i_r1_t'
   in
     let l_tmp = Fun.to_list tmp
-    and l_i_c_s' = Iso.to_list i_c_s'
-    and l_i_d_s' = Iso.to_list i_d_s'
+    and l_i_c_t' = Iso.to_list i_c_t'
+    and l_i_d_t' = Iso.to_list i_d_t'
     in
-      Fun.of_list (l_tmp@l_i_c_s'@l_i_d_s')
-  
-let basic_rewrite (i_n, i_e, f_e) ~s ~r0 ~r1 f_r1_r0 =
-  let (c, d, id, _, _) = decomp ~target:s ~pattern:r0 ~i_n ~i_e f_e 
+      Fun.of_list (l_tmp@l_i_c_t'@l_i_d_t')
+let prepare_fun_of_residue ~(c:Big.t) ~(r1:Big.t) ~(d:Big.t) ~iso_p2t_n:i_n ~iso_t2c_n:i_t2c ~iso_t2d_n:i_t2d f_r1_r0=
+  let f_r1_t = transform_fun_codom f_r1_r0 (Iso.inverse i_n)
+  and i_c_t' = gen_iso_c_s' i_t2c
+  and i_r1_t' = gen_iso_r1_s' 
+    ~num_of_nodes_in_c:(Nodes.size c.n) 
+    ~num_of_nodes_in_reactum:(Nodes.size r1.n)
+  and i_d_t' = gen_iso_d_s' 
+    ~num_of_nodes_in_c:(Nodes.size c.n) 
+    ~num_of_nodes_in_reactum:(Nodes.size r1.n) 
+    ~num_of_nodes_in_d:(Nodes.size d.n)
+    i_t2d
+  in
+    create_fun_of_residue ~iso_c_t':i_c_t' ~iso_r1_t':i_r1_t' ~iso_d_t':i_d_t' f_r1_t
+
+let basic_rewrite (i_n, i_e, f_e) ~t ~r0 ~r1 f_r1_r0 =
+  let (c, d, id, i_t2c, i_t2d) = decomp ~target:t ~pattern:r0 ~i_n ~i_e f_e 
   in
     let res_big = Big.comp c (Big.comp (Big.tens r1 id) d)
-    and f_r1_s = transform_codom f_r1_r0 (Iso.inverse i_n)
-    and i_c_res_big = gen_iso_c_s' (Nodes.size c.n)
-    and i_r1_res_big = gen_iso_r1_s' 
-      ~num_of_nodes_in_c:(Nodes.size c.n) 
-      ~num_of_nodes_in_reactum:(Nodes.size r1.n)
-    and i_d_res_big = gen_iso_d_s' 
-      ~num_of_nodes_in_c:(Nodes.size c.n) 
-      ~num_of_nodes_in_reactum:(Nodes.size r1.n) 
-      ~num_of_nodes_in_d:(Nodes.size d.n)
-    in
-      let fun_residue = gen_fun_of_residue ~iso_c_s':i_c_res_big ~iso_r1_s':i_r1_res_big ~iso_d_s':i_d_res_big f_r1_s
+    and fun_residue = prepare_fun_of_residue ~c ~r1 ~d ~iso_p2t_n:i_n ~iso_t2c_n:i_t2c ~iso_t2d_n:i_t2d f_r1_r0
       in
       res_big,fun_residue
-let rewrite (i_n, i_e, f_e) ~s ~r0 ~r1 ~f_s:eta ~f_r1_r0 =
+let rewrite (i_n, i_e, f_e) ~target ~r0 ~r1 ~f_s:eta ~f_r1_r0 =
     match eta with
-    | None -> basic_rewrite (i_n, i_e, f_e) ~s ~r0 ~r1 f_r1_r0
+    | None -> basic_rewrite (i_n, i_e, f_e) ~t:target ~r0 ~r1 f_r1_r0
     | Some _ -> raise (invalid_arg "eta not yet supported")
