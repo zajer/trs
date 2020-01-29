@@ -1,0 +1,7 @@
+(
+    tests
+    (names 
+        example_tests
+    ) 
+    (libraries tracking_bigraph oUnit )
+)

@@ -1,0 +1,65 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "dune-build",
+            "type": "shell",
+            "command": "dune build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$ocamlc"
+            ]
+        },
+        {
+            "label": "run-exe",
+            "type": "shell",
+            "command": "./_build/default/bin/main.exe",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$ocamlc"
+            ]
+        },
+        {
+            "label": "run-bc",
+            "type": "shell",
+            "command": "./_build/default/bin/main.bc",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$ocamlc"
+            ]
+        },
+        {
+            "label": "debug",
+            "type": "shell",
+            "command": "ocamldebug ./_build/default/bin/main.bc",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$ocamlc"
+            ]
+        },
+        {
+            "label": "run tests",
+            "type": "shell",
+            "command": "dune runtest",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$ocamlc"
+            ]
+        },
+    ]
+}

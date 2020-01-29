@@ -1,0 +1,6 @@
+
+(library
+  (name tracking_bigraph)
+  ( libraries bigraph )		   ; Nazwy bibliotek używanych w projekcie oddzielone spacją. Nazwa biblioteki taka jaką podajesz w 'opam install nazwa_biblioteki'
+)
+
