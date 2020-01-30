@@ -2,6 +2,7 @@
     tests
     (names 
         TBig_tests
+        Utils_tests
     ) 
     (libraries tracking_bigraph oUnit )
 )

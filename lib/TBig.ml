@@ -1,4 +1,5 @@
 open Bigraph
+open Utils
 
 let decomp ~(target:Big.t) ~(pattern:Big.t) ~i_n:i_n ~i_e:i_e f_e =
   let (p_c, p_d, p_id, i_t2c, i_t2d) = Place.decomp ~target:target.p ~pattern:pattern.p i_n in
@@ -11,18 +12,6 @@ let decomp ~(target:Big.t) ~(pattern:Big.t) ~i_n:i_n ~i_e:i_e f_e =
     in
       c,d,id,i_t2c,i_t2d
 
-let transform_fun_codom f i = 
-  let id_dom = IntSet.fold (fun i res -> Iso.add i i res) (Fun.dom f) Iso.empty
-  in
-    Fun.transform ~iso_dom:id_dom ~iso_codom:i f
-let transform_fun_dom f i = 
-    let id_codom = IntSet.fold (fun i res -> Iso.add i i res) (Fun.codom f) Iso.empty
-    in
-      Fun.transform ~iso_dom:i ~iso_codom:id_codom f
-let transform_iso_dom ~transformed:i_2transform ~applied:i_2apply =
-  let id_codom = List.fold_left (fun res i -> Iso.add i i res) Iso.empty (Iso.codom i_2transform)
-    in
-      Iso.transform ~iso_dom:i_2apply ~iso_codom:id_codom i_2transform
 let gen_iso_c_t' c_n_n =
   IntSet.fold (fun i res -> Iso.add i i res) (IntSet.of_int c_n_n) Iso.empty 
 let gen_iso_r1_t' ~num_of_nodes_in_c:c_n_n ~num_of_nodes_in_reactum:r1_n_n = 
