@@ -18,7 +18,7 @@ let test_prepare_fun_of_residue_1 _ =
       Fun.add 3 4 |> 
       Fun.add 4 5 |> 
       Fun.add 5 6
-    and res = TBig.prepare_fun_of_residue ~c_n_n ~r1_n_n ~d_n_n ~iso_p2t_n:i_p2t ~iso_t2c_n:i_t2c ~iso_t2d_n:i_t2d f_r1_in_r0
+    and res = TBig.prepare_basic_fun_of_residue ~c_n_n ~r1_n_n ~d_n_n ~iso_p2t_n:i_p2t ~iso_t2c_n:i_t2c ~iso_t2d_n:i_t2d f_r1_in_r0
     in
       assert_equal ~cmp:(fun x y -> Fun.equal x y) exp_res res
 

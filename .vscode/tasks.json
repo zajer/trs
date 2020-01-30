@@ -9,9 +9,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": [
-                "$ocamlc"
-            ]
+            "problemMatcher": []
         },
         {
             "label": "run-exe",
@@ -20,10 +18,7 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
-            },
-            "problemMatcher": [
-                "$ocamlc"
-            ]
+            }
         },
         {
             "label": "run-bc",
@@ -32,10 +27,7 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
-            },
-            "problemMatcher": [
-                "$ocamlc"
-            ]
+            }
         },
         {
             "label": "debug",
@@ -44,10 +36,7 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
-            },
-            "problemMatcher": [
-                "$ocamlc"
-            ]
+            }
         },
         {
             "label": "run tests",
@@ -57,9 +46,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": [
-                "$ocamlc"
-            ]
-        },
+            "problemMatcher": []
+        }
     ]
 }
