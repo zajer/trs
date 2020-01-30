@@ -14,11 +14,12 @@
         {
             "label": "run-exe",
             "type": "shell",
-            "command": "./_build/default/bin/main.exe",
+            "command": "./_build/default/bin/main2.exe",
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
+            },
+            "problemMatcher": []
         },
         {
             "label": "run-bc",

@@ -33,6 +33,14 @@ in
   let res = transform_fun_dom f i
   in
   assert_equal exp_res res
+let test_shift_iso_codom_1 _ =
+  let iso = Iso.empty |> Iso.add 0 0 |> Iso.add 1 1
+  and shift = 1
+  and exp_res = Iso.empty |> Iso.add 0 1 |> Iso.add 1 2
+  in
+    let res = shift_iso_codom iso shift
+    in
+      assert_equal exp_res res
 
 let suite =
   "Utils tests" >::: [
@@ -40,6 +48,7 @@ let suite =
     "Transform codom 2">:: test_transform_fun_codom_2;
     "Transform dom 1">:: test_transform_fun_dom_1;
     "Transform dom 2">:: test_transform_fun_dom_2;
+    "Shift codom 1">:: test_shift_iso_codom_1;
   ]
 let () =
   run_test_tt_main suite

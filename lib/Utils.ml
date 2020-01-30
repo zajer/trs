@@ -12,7 +12,7 @@ let transform_iso_dom ~transformed:i_2transform ~applied:i_2apply =
   let id_codom = List.fold_left (fun res i -> Iso.add i i res) Iso.empty (Iso.codom i_2transform)
     in
       Iso.transform ~iso_dom:i_2apply ~iso_codom:id_codom i_2transform
-let shift_codomain i c =
+let shift_iso_codom i c =
   Iso.fold (fun i_c i_a res-> Iso.add i_c (i_a+c) res ) i Iso.empty
 let iso_apply i e =
   Option.get (Iso.apply i e)
@@ -46,7 +46,7 @@ let transform_rel_dom r i =
   Rel.fold 
     (fun x is res -> 
       if Iso.mem x i then
-        Rel.add (iso_apply i x) (IntSet.apply i is) res 
+        Rel.add (iso_apply i x) is res 
       else
         res
     ) 
