@@ -36,7 +36,7 @@ let create_fun_of_residue ~iso_c_in_t'_2_t:i_c_t' ~iso_d_in_t'_2_t:i_d_t' f_r1_i
     in
       Fun.of_list (l_f_r1_t'@l_i_c_t'@l_i_d_t')
 let prepare_fun_of_residue ~c_n_n ~r1_n_n ~d_n_n ~iso_p2t_n:i_n ~iso_t2c_n:i_t2c ~iso_t2d_n:i_t2d f_r1_r0=
-  let f_r1_t = transform_fun_codom f_r1_r0 (Iso.inverse i_n)
+  let f_r1_t = transform_fun_codom f_r1_r0 i_n
   and i_r1_t' = gen_iso_r1_t' 
     ~num_of_nodes_in_c:c_n_n
     ~num_of_nodes_in_reactum:r1_n_n
