@@ -86,12 +86,58 @@ let test_rewrite_3_eta _ =
             in
               assert_equal ~cmp:(fun f1 f2 -> Fun.equal f1 f2) exp_fun res_fun;
               assert_equal ~cmp:(fun f1 f2 -> Big.equal f1 f2) exp_big res_big
+let test_rewrite_4_no_eta _ =
+  let s_to_parse ="{(0, A:0),(1, B:0),(2, C:0),(3, D:0),(4, E:0)}\n0 5 0\n01100\n00010\n00001\n00000\n00000\n"
+    and r0_to_parse ="{(0, A:0)}\n1 1 1\n10\n01"
+    and r1_to_parse ="{(0, A:0),(1, X:0)}\n1 2 1\n110\n001\n000"
+    in
+      let s = Big.of_string s_to_parse
+      and lhs = Big.of_string r0_to_parse
+      and rhs = Big.of_string r1_to_parse
+      and fs = Fun.empty |> Fun.add 0 0 
+      and tau = Fun.empty |> Fun.add 0 0 
+      in
+        let occs = Big.occurrences ~target:s ~pattern:lhs
+        in
+          let _ = assert_equal 1 (List.length occs);
+          and oc1 = List.hd occs
+          in
+            let (res_big, res_fun) = TBig.rewrite oc1 ~target:s ~r0:lhs ~r1:rhs ~f_s:(Some fs) ~f_r1_r0:tau ;
+            and exp_fun = Fun.empty |> Fun.add 0 0 |> Fun.add 2 1 |> Fun.add 3 2 |> Fun.add 4 3 |> Fun.add 5 4
+            and exp_big = Big.of_string "{(0, A:0),(1, X:0),(2, B:0),(3, C:0),(4, D:0),(5, E:0)}\n0 6 0\n001100\n000000\n000010\n000001\n000000\n000000\n"
+            in
+              assert_equal ~cmp:(fun f1 f2 -> Fun.equal f1 f2) exp_fun res_fun;
+              assert_equal ~cmp:(fun f1 f2 -> Big.equal f1 f2) exp_big res_big
+let test_rewrite_5_eta _ =
+  let s_to_parse ="{(0, A:0),(1, B:0)}\n0 2 0\n01\n00"
+    and r0_to_parse ="{(0, A:0)}\n1 1 1\n10\n01"
+    and r1_to_parse ="{(0, A:0),(1, X:0)}\n1 2 2\n1100\n0011\n0000"
+    in
+      let s = Big.of_string s_to_parse
+      and lhs = Big.of_string r0_to_parse
+      and rhs = Big.of_string r1_to_parse
+      and fs = Fun.empty |> Fun.add 0 0 |> Fun.add 1 0
+      and tau = Fun.empty |> Fun.add 0 0 
+      in
+        let occs = Big.occurrences ~target:s ~pattern:lhs
+        in
+          let _ = assert_equal 1 (List.length occs);
+          and oc1 = List.hd occs
+          in
+            let (res_big, res_fun) = TBig.rewrite oc1 ~target:s ~r0:lhs ~r1:rhs ~f_s:(Some fs) ~f_r1_r0:tau ;
+            and exp_fun = Fun.empty |> Fun.add 0 0 |> Fun.add 2 1 |> Fun.add 3 1
+            and exp_big = Big.of_string "{(0, A:0),(1, X:0),(2, B:0),(3, B:0)}\n0 4 0\n0011\n0000\n0000\n0000"
+            in
+              assert_equal ~cmp:(fun f1 f2 -> Fun.equal f1 f2) exp_fun res_fun;
+              assert_equal ~cmp:(fun f1 f2 -> Big.equal f1 f2) exp_big res_big
 let suite =
   "TBig tests" >::: [
     "Prepare function of residue 1">:: test_prepare_fun_of_residue_1;
     "Rewrite 1 no eta">:: test_rewrite_1_no_eta;
     "Rewrite 2 eta-cloning">:: test_rewrite_2_eta;
     "Rewrite 3 eta-cloning">:: test_rewrite_3_eta;
+    "Rewrite 4 no eta-not all mapped">:: test_rewrite_4_no_eta;
+    "Rewrite 4 eta-not all mapped">:: test_rewrite_5_eta;
 ]
 
 let () =
