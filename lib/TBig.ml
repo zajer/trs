@@ -8,8 +8,6 @@ let prime_components_with_tracking (b:Big.t) =
       let lgs = Link.prime_components b.l isos 
       in
         List.map (fun ((p, l), iso) ->
-          print_endline "iso in prime components";
-          print_endline (Iso.to_string iso);
           { Big.p = p;
             l = l;
             n = Nodes.apply iso b.n;
@@ -25,12 +23,6 @@ let instantiate_with_tracking eta b =
           in
             let i_after_shift = shift_iso_codom i num_of_nodes
             in 
-            print_endline "num of nodes so far:";
-            print_endline (string_of_int num_of_nodes);
-            print_endline "d'2pc iso:";
-            print_endline (Iso.to_string i);
-            print_endline "d'2pc iso after shifting:";
-            print_endline (Iso.to_string i_after_shift);
             Big.ppar acc_b b, (i_after_shift::acc_i)
         with
         | Failure _ | Invalid_argument _ -> (*BISECT-IGNORE*)
@@ -44,9 +36,6 @@ let decomp_d_with_tracking (d:Big.t) id =
   let lgs = Link.prime_components d.l [iso_d; iso_id] in
   match lgs with
   | [l_d; l_id] ->
-    print_endline "iso_d2d' i iso_d2d_id";
-    print_endline (Iso.to_string iso_d);
-    print_endline (Iso.to_string iso_id);
     ({ Big.p = p_d;
         l = l_d;
         n = Nodes.apply iso_d d.n;
@@ -142,12 +131,6 @@ let create_rel_t2d ~iso_d2d':i_d2d' ~iso_d2d_id:i_d2did ~iso_t2d:i_t2d ~rel_d'2b
   in
     let r_d2bi_did = merge_rel_with_iso r_d2bi shifted_i_d2did
     in
-      print_endline "i_d2d'";
-      print_endline (Iso.to_string i_d2d');
-      print_endline "r_d'2bi";
-      print_endline (Rel.to_string r_d'2bi);
-      print_endline "r_d2bi";
-      print_endline (Rel.to_string r_d2bi);
       transform_rel_dom r_d2bi_did (Iso.inverse i_t2d)
 let insta_rewrite (i_n, i_e, f_e) ~t ~r0 ~r1 ~f_r1_r0 ~eta =
   if (Fun.is_id eta) && (Fun.is_surj (Big.inner r0 |> Big.ord_of_inter) eta) then
@@ -189,14 +172,6 @@ let insta_rewrite (i_n, i_e, f_e) ~t ~r0 ~r1 ~f_r1_r0 ~eta =
                       ~f_r1_r0
                       ~rel_t2d
                     in
-                      print_endline "iso_t2d";
-                      print_endline (Iso.to_string i_t2d);
-                      print_endline "iso_d2d'";
-                      print_endline (Iso.to_string iso_d2d');
-                      print_endline "rel_d'2b_insta";
-                      print_endline (Rel.to_string rel_d'2b_insta);
-                      print_endline "rel_t2d";
-                      print_endline (Rel.to_string rel_t2d);
                       res_big,
                       res_fun        
 let rewrite (i_n, i_e, f_e) ~target ~r0 ~r1 ~f_s:eta ~f_r1_r0 =
