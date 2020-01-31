@@ -137,7 +137,7 @@ let suite =
     "Rewrite 2 eta-cloning">:: test_rewrite_2_eta;
     "Rewrite 3 eta-cloning">:: test_rewrite_3_eta;
     "Rewrite 4 no eta-not all mapped">:: test_rewrite_4_no_eta;
-    "Rewrite 4 eta-not all mapped">:: test_rewrite_5_eta;
+    "Rewrite 5 eta-not all mapped">:: test_rewrite_5_eta;
 ]
 
 let () =
