@@ -69,8 +69,6 @@ let decomp ~(target:Big.t) ~(pattern:Big.t) ~i_n:i_n ~i_e:i_e f_e =
       and id = { Big.p = p_id; l = l_id; n = Nodes.empty }
     in
       c,d,id,i_t2c,i_t2d
-let gen_iso_c_t' c_n_n =
-  IntSet.fold (fun i res -> Iso.add i i res) (IntSet.of_int c_n_n) Iso.empty 
 let gen_iso_r1_t' ~num_of_nodes_in_c:c_n_n ~num_of_nodes_in_reactum:r1_n_n = 
   IntSet.fold (fun i res -> Iso.add i (i+c_n_n) res) (IntSet.of_int r1_n_n) Iso.empty 
 let gen_iso_d_t' ~num_of_nodes_in_c:c_n_n ~num_of_nodes_in_reactum:r1_n_n ~num_of_nodes_in_d:d_n_n=
