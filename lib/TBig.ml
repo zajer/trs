@@ -178,3 +178,9 @@ let rewrite (i_n, i_e, f_e) ~target ~r0 ~r1 ~f_s:eta ~f_r1_r0 =
     match eta with
     | None -> basic_rewrite (i_n, i_e, f_e) ~t:target ~r0 ~r1 f_r1_r0
     | Some eta' -> insta_rewrite (i_n, i_e, f_e) ~t:target ~r0 ~r1 ~f_r1_r0 ~eta:eta'
+let translate_equal ~from_b:b1 ~to_b:b2 = 
+  let result_opt = Big.occurrence ~target:b2 ~pattern:b1 (Place.trans b1.p)
+  in
+    match result_opt with
+    | None -> raise (invalid_arg "Bigraphs are not equal")
+    | Some (res_iso,_,_) -> res_iso
