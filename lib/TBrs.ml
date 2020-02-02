@@ -1,6 +1,18 @@
 open Bigraph
 type react = { label:string; lhs:Big.t; rhs:Big.t; f_sm:Fun.t option; f_rnm:Fun.t}
 type trans = { init_state:Big.t; res_state:Big.t ; residue:Fun.t ; participants:Iso.t ; react_label:string}
+let trans_to_string t =
+    let init_state_label = "Init state:"
+    and res_state_label = "Res state:"
+    and residue_fun_label = "Residue fun:"
+    and participant_label = "Participants:"
+    in
+        let init_state = init_state_label^"\n"^(Big.to_string t.init_state)
+        and res_state = res_state_label^"\n"^(Big.to_string t.res_state)
+        and residue_fun = residue_fun_label^"\n"^(Fun.to_string t.residue)
+        and participants = participant_label^"\n"^(Iso.to_string t.participants)
+        in
+            (String.concat "\n" [init_state;res_state;residue_fun;participants])
 let is_site_mapping_function_correct f_sm ~(lhs:Big.t) ~(rhs:Big.t) =
     let is_fsm_total = IntSet.equal (IntSet.of_int (rhs.p.s) ) (Fun.dom f_sm)
     and is_fsm_to_not_exceeding = IntSet.max_elt (Fun.codom f_sm) < Some (lhs.p.s)
@@ -15,7 +27,7 @@ let parse_react l ~(lhs:Big.t) ~(rhs:Big.t) ~(f_sm:Fun.t option) ~(f_rnm:Fun.t) 
         | None -> rhs.p.s = lhs.p.s
         | Some fsm -> is_site_mapping_function_correct fsm ~lhs ~rhs
     and is_f_rnm_correct = is_residual_node_mapping_function_correct f_rnm ~lhs ~rhs
-    and is_label_not_empty = l = ""
+    and is_label_not_empty = l <> ""
     in
         match is_f_sm_correct,is_f_rnm_correct,is_label_not_empty with
         | false, _, _ -> raise (invalid_arg "Sites mapping is not correct or is absent when needed")
