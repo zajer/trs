@@ -117,7 +117,7 @@ let unify_with_checked su checked =
     su
 let rec _explore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:Big.t list) ~(unchecked:Big.t list) =
         match unchecked with
-        | [] -> []
+        | [] -> [],checked,current_step
         | s::rest -> 
             let res_su = step_unified_res s rules 
             in
@@ -133,11 +133,11 @@ let rec _explore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(c
                                 and new_unchecked = rest@part_new_unchecked
                                 and new_current_step = current_step + 1
                                 in
-                                    let inherited_result = _explore_ss ~rules ~max_steps ~current_step:new_current_step ~checked:new_checked ~unchecked:new_unchecked
+                                    let given_transitions,given_unique_states,last_reached_step = _explore_ss ~rules ~max_steps ~current_step:new_current_step ~checked:new_checked ~unchecked:new_unchecked
                                     in
-                                        part_result@inherited_result
+                                        part_result@given_transitions,given_unique_states,last_reached_step
                             else
-                            []
+                            [],checked,current_step
 let explore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     let checked = []
     and unchecked = [s0]
