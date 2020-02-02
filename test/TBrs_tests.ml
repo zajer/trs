@@ -1,6 +1,4 @@
 open OUnit2
-open Bigraph
-open Tracking_bigraph
 
 
 let suite =
