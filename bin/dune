@@ -1,7 +1,7 @@
 
 (executable
-  (name main3)               ; The name of your entry file, minus the .ml
+  (name main5)               ; The name of your entry file, minus the .ml
   (public_name my_super_name) 		  ; Whatever you like, as far as I can tell
   (libraries tracking_bigraph )          ; Express a dependency on the 'lib' module
-  (modes byte )             ; Tryb budowania programu exe to native byte to byte
+  (modes (native exe) )             ; Tryb budowania programu exe to native byte to byte
 ) 

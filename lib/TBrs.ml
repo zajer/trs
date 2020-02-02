@@ -144,3 +144,45 @@ let explore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     and current_step = 0 
     in
         _explore_ss ~rules ~max_steps ~current_step ~checked ~unchecked 
+let parapply_trr (b:Big.t) (r:react) noc =
+    let occs = Big.occurrences ~target:b ~pattern:r.lhs
+    in  
+        let par_occs = Parmap.L occs
+        in
+            Parmap.parfold (fun occ res -> apply_trr_with_occ b r occ :: res) par_occs [] (fun part_res1 part_res2 -> part_res1@part_res2) ~ncores:noc
+let parstep_unified_res b lr noc =
+    let raw_result = Parmap.parfold (fun r res -> parapply_trr b r noc @ res) lr [] (fun part_res1 part_res2 -> part_res1 @ part_res2) ~ncores:noc
+    in  
+        let unified_result = unify_based_on_iso_res_states raw_result
+        in
+            unified_result
+let rec _parexplore_ss ~(rules:react Parmap.sequence) ~(max_steps:int) ~(current_step:int) ~(checked:Big.t list) ~(unchecked:Big.t list) ~(ncores:int)=
+        match unchecked with
+        | [] -> [],checked,current_step
+        | s::rest -> 
+            let res_su = parstep_unified_res s rules ncores
+            in
+                let unieque,unified_with_checked = unify_with_checked res_su checked  
+                in 
+                    let part_new_unchecked, part_result1  = List.split unieque
+                    and _ , part_result2 = List.split unified_with_checked
+                    in
+                        let part_result = List.concat part_result1 @ List.concat part_result2
+                        in
+                            if current_step < max_steps then
+                                let new_checked = s::checked
+                                and new_unchecked = rest@part_new_unchecked
+                                and new_current_step = current_step + 1
+                                in
+                                    let given_transitions,given_unique_states,last_reached_step = _parexplore_ss ~rules ~max_steps ~current_step:new_current_step ~checked:new_checked ~unchecked:new_unchecked ~ncores
+                                    in
+                                        part_result@given_transitions,given_unique_states,last_reached_step
+                            else
+                            [],checked,current_step
+let parexplore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) ~(ncores:int) =
+    let checked = []
+    and unchecked = [s0]
+    and current_step = 0 
+    and parrules = Parmap.L rules
+    in
+        _parexplore_ss ~rules:parrules ~max_steps ~current_step ~checked ~unchecked ~ncores
