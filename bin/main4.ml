@@ -174,7 +174,7 @@ let mov_react = TBrs.parse_react "move" ~lhs:mov_lhs ~rhs:mov_rhs ~f_sm:None ~f_
 let estConn1AF_react = TBrs.parse_react "estConn1AF" ~lhs:estConn1AF_lhs ~rhs:estConn1AF_rhs ~f_sm:None ~f_rnm:estConn1AF_f_rnm
 let estConn2AF_react = TBrs.parse_react "estConn2AF" ~lhs:estConn2AF_lhs ~rhs:estConn2AF_rhs ~f_sm:None ~f_rnm:estConn2AF_f_rnm
 
-let tl,ss,ms = TBrs.explore_ss ~s0 ~rules:[mov_react;estConn1AF_react;estConn2AF_react] ~max_steps:100;;
+let tl,ss,ms = TBrs.explore_ss ~s0 ~rules:[mov_react;estConn1AF_react;estConn2AF_react] ~max_steps:300;;
 
 print_endline ("Liczba przejść:" ^ ( string_of_int (List.length tl) ) );
 print_endline ("Liczba stanów:" ^ ( string_of_int (List.length ss) ) );

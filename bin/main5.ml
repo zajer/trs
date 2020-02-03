@@ -1,7 +1,6 @@
 open Bigraph
 open Tracking_bigraph
 
-
 let s0_to_parse =
 "
 {(0, AL:0),(1, AF:4),(2, UAV:1),(3, AF:4),(4, AF:4),(5, UAV:1),(6, AF:4),(7, UAV:1),(8, AF:4),(9, AF:4),(10, AF:4),(11, AF:4),(12, AF:4),(13, AF:4),(14, AF:4),(15, AF:4)}
@@ -173,8 +172,36 @@ let estConn1AF_f_rnm = Fun.empty |> Fun.add 0 0 |> Fun.add 1 1 |> Fun.add 2 2
 let mov_react = TBrs.parse_react "move" ~lhs:mov_lhs ~rhs:mov_rhs ~f_sm:None ~f_rnm:mov_f_rnm
 let estConn1AF_react = TBrs.parse_react "estConn1AF" ~lhs:estConn1AF_lhs ~rhs:estConn1AF_rhs ~f_sm:None ~f_rnm:estConn1AF_f_rnm
 let estConn2AF_react = TBrs.parse_react "estConn2AF" ~lhs:estConn2AF_lhs ~rhs:estConn2AF_rhs ~f_sm:None ~f_rnm:estConn2AF_f_rnm
-
-let tl,ss,ms = TBrs.parexplore_ss ~s0 ~rules:[mov_react;estConn1AF_react;estConn2AF_react] ~max_steps:50 ~ncores:4;;
+let rules = [mov_react;estConn1AF_react;estConn2AF_react]
+let tl,ss,ms = TBrs.explore_ss ~s0 ~rules ~max_steps:300;;
 
 print_endline ("Liczba przejść:" ^ ( string_of_int (List.length tl) ) );
-print_endline ("Liczba stanów:" ^ ( string_of_int (List.length ss) ) );
+print_endline ("Liczba stanów:" ^ ( string_of_int (List.length ss) ) );;
+(*List.iteri 
+    (
+        fun i t -> 
+            print_endline ("Stan:"^(string_of_int i));
+            print_endline ((Big.to_string t)^"\n")
+    ) 
+    ss;
+*)
+(*
+List.iteri 
+    (
+        fun i b1 -> 
+            List.iteri 
+            (
+                fun j b2 -> 
+                    if i <> j && Big.equal b1 b2 then
+                    (
+                        print_endline ("Dwugrafy: i="^(string_of_int i)^" j="^(string_of_int j)^" są izomorficzne");
+                        if Big.key b1 = Big.key b2 then 
+                            print_endline ("Dwugrafy: i="^(string_of_int i)^" j="^(string_of_int j)^" maja identyczne hashe");
+                    )
+                    else
+                        ()
+            ) 
+            ss;     
+    ) 
+    ss;
+    *)
