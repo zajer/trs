@@ -11,4 +11,4 @@ val step_unified_res : Big.t -> react list -> (Big.t * trans list) list
 val apply_trr : Big.t -> react -> trans list
 val apply_trr_with_occ : Big.t -> react -> Big.occ -> trans
 val parapply_trr : Big.t -> react -> int -> trans list
-val parexplore_ss : s0:Big.t -> rules:react list -> max_steps:int -> ncores:int -> trans list* Big.t list*int
+val parexplore_ss : s0:Big.t -> rules:react list -> max_steps:int -> trans list* Big.t list*int

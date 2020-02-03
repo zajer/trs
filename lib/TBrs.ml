@@ -185,8 +185,10 @@ let parapply_trr (b:Big.t) (r:react) noc =
         let par_occs = Parmap.L occs
         in
             Parmap.parfold (fun occ res -> apply_trr_with_occ b r occ :: res) par_occs [] (fun part_res1 part_res2 -> part_res1@part_res2) ~ncores:noc
-let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:Big.t list) ~(unchecked:Big.t list) =
-    List.fold_right
+let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:Big.t list) ~unchecked =
+    let converted_unchecked = Parmap.L unchecked
+    in
+    Parmap.parfold
         (
             fun ucs (trans,new_unchecked_states) ->
                 let res_su = step_grouped_iso_res ucs rules
@@ -204,9 +206,17 @@ let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:Big.t list)
                                     in
                                         part_result@trans,filtered_of_current_results@new_unchecked_states
         )
-        unchecked
+        converted_unchecked
         ([],[])
-let rec _parexplore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:Big.t list) ~(unchecked:Big.t list) =
+        (
+            fun (trans_part1, new_unchecked_part1) (trans_part2, new_unchecked_part2) -> 
+                let trans_res = trans_part1@trans_part2
+                and filtered_part2 = filter_iso_dupl ~filter_of:new_unchecked_part1 ~filter_from:new_unchecked_part2
+                in
+                    trans_res,new_unchecked_part1@filtered_part2
+
+        )
+let rec _parexplore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:Big.t list) ~unchecked =
         if current_step < max_steps then
             match unchecked with
             | [] -> [],checked,current_step
@@ -219,10 +229,9 @@ let rec _parexplore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) 
                 
         else
             [],checked,current_step
-let parexplore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) ~ncores:_ =
+let parexplore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     let checked = []
-    and unchecked = [s0]
     and current_step = 0 
-    and _ = Parmap.L rules
+    and unchecked = [s0]
     in
         _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked
