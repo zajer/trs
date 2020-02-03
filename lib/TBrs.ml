@@ -185,27 +185,38 @@ let parapply_trr (b:Big.t) (r:react) noc =
         let par_occs = Parmap.L occs
         in
             Parmap.parfold (fun occ res -> apply_trr_with_occ b r occ :: res) par_occs [] (fun part_res1 part_res2 -> part_res1@part_res2) ~ncores:noc
-let rec _parexplore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:Big.t list) ~(unchecked:Big.t list) =
-        if current_step < max_steps then
-            match unchecked with
-            | [] -> [],checked,current_step
-            | s::rest -> 
-                let res_su = step_grouped_iso_res s rules 
+let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:Big.t list) ~(unchecked:Big.t list) =
+    List.fold_right
+        (
+            fun ucs (trans,new_unchecked_states) ->
+                let res_su = step_grouped_iso_res ucs rules
                 in
-                    let unified_with_checked,unique = group_with_checked res_su (s::checked) 
-                    in 
-                        let part_new_unchecked, part_result1  = List.split unique
+                    let unified_with_checked,unique = group_with_checked res_su (ucs::checked) 
+                    in
+                        let new_unchecked_filtered_of_checked, part_result1  = List.split unique
                         and _ , part_result2 = List.split unified_with_checked
                         in
                             let part_result = List.concat part_result1 @ List.concat part_result2
                             in
-                                let new_checked = s::checked
-                                and new_unchecked = rest@(filter_iso_dupl ~filter_of:rest ~filter_from:part_new_unchecked)
-                                and new_current_step = current_step + 1
+                                let filtered_of_checked_and_current_unchecked = filter_iso_dupl ~filter_of:unchecked ~filter_from:new_unchecked_filtered_of_checked
                                 in
-                                    let given_transitions,given_unique_states,last_reached_step = _parexplore_ss ~rules ~max_steps ~current_step:new_current_step ~checked:new_checked ~unchecked:new_unchecked
+                                    let filtered_of_current_results = filter_iso_dupl ~filter_of:new_unchecked_states ~filter_from:filtered_of_checked_and_current_unchecked
                                     in
-                                        part_result@given_transitions,given_unique_states,last_reached_step
+                                        part_result@trans,filtered_of_current_results@new_unchecked_states
+        )
+        unchecked
+        ([],[])
+let rec _parexplore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:Big.t list) ~(unchecked:Big.t list) =
+        if current_step < max_steps then
+            match unchecked with
+            | [] -> [],checked,current_step
+            | _ ->
+                let res_trans,res_unchecked = _pargen_of_trans_and_unique_states ~rules ~checked ~unchecked
+                in
+                    let given_transitions,given_unique_states,last_reached_step = _parexplore_ss ~rules ~max_steps ~current_step:(current_step+1) ~checked:(checked@unchecked) ~unchecked:res_unchecked
+                    in
+                        res_trans@given_transitions,given_unique_states,last_reached_step
+                
         else
             [],checked,current_step
 let parexplore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) ~ncores:_ =
