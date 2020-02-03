@@ -88,11 +88,7 @@ let rec unify_based_on_iso_res_states lot =
 let step b lr =
     List.fold_left (fun res r -> apply_trr b r @ res) [] lr
 let step_unified_res b lr =
-    let raw_result = List.fold_left (fun res r -> apply_trr b r @ res) [] lr
-    in  
-        let unified_result = unify_based_on_iso_res_states raw_result
-        in
-            unified_result
+    unify_based_on_iso_res_states (step b lr)
 let rec group_based_on_iso_res_states lot = 
     match lot with
         | [] -> []
@@ -121,21 +117,6 @@ let equal_state_from_checked state checked =
             )
             (Big.id_eps,false)
             checked
-let unify_with_checked su checked =
-    List.fold_left 
-    (
-        fun (res_unique,res_unified) (res_big, tl) ->
-            let from_checked, does_exist = equal_state_from_checked res_big checked 
-                in
-                    if does_exist then
-                            let unified_part_res, _ = translate_all_iso_trans from_checked tl
-                            in
-                               res_unique,[from_checked, unified_part_res]@res_unified
-                    else
-                        [res_big, tl]@res_unique,res_unified 
-    )
-    ([],[])
-    su
 let group_with_checked su checked =
     List.fold_left 
     (
@@ -149,50 +130,6 @@ let group_with_checked su checked =
     )
     ([],[])
     su
-let rec _explore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:Big.t list) ~(unchecked:Big.t list) =
-        match unchecked with
-        | [] -> [],checked,current_step
-        | s::rest -> 
-            let res_su = step_unified_res s rules 
-            in
-                let unieque,unified_with_checked = unify_with_checked res_su checked  
-                in 
-                    let part_new_unchecked, part_result1  = List.split unieque
-                    and _ , part_result2 = List.split unified_with_checked
-                    in
-                        let part_result = List.concat part_result1 @ List.concat part_result2
-                        in
-                            if current_step < max_steps then
-                                let new_checked = s::checked
-                                and new_unchecked = rest@part_new_unchecked
-                                and new_current_step = current_step + 1
-                                in
-                                    let given_transitions,given_unique_states,last_reached_step = _explore_ss ~rules ~max_steps ~current_step:new_current_step ~checked:new_checked ~unchecked:new_unchecked
-                                    in
-                                        part_result@given_transitions,given_unique_states,last_reached_step
-                            else
-                            [],checked,current_step
-let magic (x:Big.t list ) (y:int) =
-    print_endline "magic"; 
-    if y = 99 then
-        List.iteri 
-        (
-            fun i (b1) -> 
-                List.iteri 
-                (
-                    fun j (b2) ->
-                        if i <> j && Big.equal b1 b2 then
-                        (
-                            print_endline ("Dwugrafy: i="^(string_of_int i)^" j="^(string_of_int j)^" są izomorficzne");
-                            if Big.key b1 = Big.key b2 then 
-                                print_endline ("Dwugrafy: i="^(string_of_int i)^" j="^(string_of_int j)^" maja identyczne hashe");
-                        )
-                        else
-                            ()
-                ) 
-                x;     
-        ) 
-        x
 let split_into_iso_bigs (patt:Big.t) (rest:Big.t list) =
     let patt_key = Big.key patt
     in
@@ -213,9 +150,7 @@ let rec filter_iso_dupl ~filter_of:x ~filter_from:y =
         let _, rest_from = split_into_iso_bigs t y
         in 
             filter_iso_dupl ~filter_of:rest_of ~filter_from:rest_from
-            
-
-let rec _explore_ss2 ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:Big.t list) ~(unchecked:Big.t list) =
+let rec _explore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:Big.t list) ~(unchecked:Big.t list) =
         if current_step < max_steps then
             match unchecked with
             | [] -> [],checked,current_step
@@ -230,11 +165,10 @@ let rec _explore_ss2 ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(
                             let part_result = List.concat part_result1 @ List.concat part_result2
                             in
                                 let new_checked = s::checked
-                                (*and new_unchecked = rest@part_new_unchecked*)
                                 and new_unchecked = rest@(filter_iso_dupl ~filter_of:rest ~filter_from:part_new_unchecked)
                                 and new_current_step = current_step + 1
                                 in
-                                    let given_transitions,given_unique_states,last_reached_step = _explore_ss2 ~rules ~max_steps ~current_step:new_current_step ~checked:new_checked ~unchecked:new_unchecked
+                                    let given_transitions,given_unique_states,last_reached_step = _explore_ss ~rules ~max_steps ~current_step:new_current_step ~checked:new_checked ~unchecked:new_unchecked
                                     in
                                         part_result@given_transitions,given_unique_states,last_reached_step
         else
@@ -244,17 +178,40 @@ let explore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     and unchecked = [s0]
     and current_step = 0 
     in
-        _explore_ss2 ~rules ~max_steps ~current_step ~checked ~unchecked 
+        _explore_ss ~rules ~max_steps ~current_step ~checked ~unchecked 
 let parapply_trr (b:Big.t) (r:react) noc =
     let occs = Big.occurrences ~target:b ~pattern:r.lhs
     in  
         let par_occs = Parmap.L occs
         in
             Parmap.parfold (fun occ res -> apply_trr_with_occ b r occ :: res) par_occs [] (fun part_res1 part_res2 -> part_res1@part_res2) ~ncores:noc
+let rec _parexplore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:Big.t list) ~(unchecked:Big.t list) =
+        if current_step < max_steps then
+            match unchecked with
+            | [] -> [],checked,current_step
+            | s::rest -> 
+                let res_su = step_grouped_iso_res s rules 
+                in
+                    let unified_with_checked,unique = group_with_checked res_su (s::checked) 
+                    in 
+                        let part_new_unchecked, part_result1  = List.split unique
+                        and _ , part_result2 = List.split unified_with_checked
+                        in
+                            let part_result = List.concat part_result1 @ List.concat part_result2
+                            in
+                                let new_checked = s::checked
+                                and new_unchecked = rest@(filter_iso_dupl ~filter_of:rest ~filter_from:part_new_unchecked)
+                                and new_current_step = current_step + 1
+                                in
+                                    let given_transitions,given_unique_states,last_reached_step = _parexplore_ss ~rules ~max_steps ~current_step:new_current_step ~checked:new_checked ~unchecked:new_unchecked
+                                    in
+                                        part_result@given_transitions,given_unique_states,last_reached_step
+        else
+            [],checked,current_step
 let parexplore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) ~ncores:_ =
     let checked = []
     and unchecked = [s0]
     and current_step = 0 
     and _ = Parmap.L rules
     in
-        _explore_ss2 ~rules:rules ~max_steps ~current_step ~checked ~unchecked
+        _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked
