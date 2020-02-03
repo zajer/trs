@@ -55,16 +55,30 @@ let translate_trans ~(output_res_state:Big.t) ~(translated:trans) =
                 participants=translated.participants;
                 react_label=translated.react_label
             }      
-let rec translate_all_iso_trans (patt:Big.t) (rest:trans list) = 
-    match rest with 
-    | [] -> [],[]
-    | t2c::rest' -> 
-        if Big.equal patt t2c.res_state then
-            let eq_translated,neq = translate_all_iso_trans patt rest'
-            in translate_trans ~translated:t2c ~output_res_state:patt::eq_translated,neq
-        else
-            let eq_translated,neq = translate_all_iso_trans patt rest'
-            in eq_translated,t2c::neq
+let split_into_iso_trans (patt:Big.t) (rest:trans list) =
+    let patt_key = Big.key patt
+    in
+        List.fold_right 
+            (
+                fun t (res_eq,res_neq) -> 
+                    if Big.key t.res_state = patt_key then
+                        if Big.equal t.res_state patt then
+                            t::res_eq,res_neq
+                        else
+                            res_eq,t::res_neq
+                    else
+                        res_eq,t::res_neq
+            )
+            rest
+            ([],[])
+let translate_all ors ttl =
+    List.fold_right (fun t res -> translate_trans ~translated:t ~output_res_state:ors::res) ttl []
+let translate_all_iso_trans (patt:Big.t) (all:trans list) =
+    let eq,neq = split_into_iso_trans patt all
+    in
+        let teq = translate_all patt eq
+        in
+            teq,neq
 let rec unify_based_on_iso_res_states lot = 
     match lot with
     | [] -> []
@@ -82,36 +96,68 @@ let step_unified_res b lr =
         let unified_result = unify_based_on_iso_res_states raw_result
         in
             unified_result
-let does_state_exist_in_checked state checked =
-    List.exists (fun ic -> Big.equal ic state) checked
-let get_equal_state_from_checked state checked = 
-    List.fold_left 
-        (
-            fun res ic -> 
-                if Big.equal res Big.id_eps then
-                    if Big.equal state ic then
-                        ic
+let rec group_based_on_iso_res_states lot = 
+    match lot with
+        | [] -> []
+        | t::rest -> 
+        let equal_with_t, rest' = split_into_iso_trans t.res_state rest
+        in 
+            let grouped_with_rest = group_based_on_iso_res_states rest'
+            in 
+                [t.res_state,t::equal_with_t] @ grouped_with_rest
+let step_grouped_iso_res b lr =
+    let raw_result = List.fold_left (fun res r -> apply_trr b r @ res) [] lr
+        in  
+            let grouped_result = group_based_on_iso_res_states raw_result
+            in
+                grouped_result
+let equal_state_from_checked state checked = 
+    let state_key = Big.key state 
+    in
+        List.fold_left 
+            (
+                fun (res_big,res_i) ic -> 
+                if not res_i then
+                    if Big.key ic = state_key then
+                    (*if Big.equal res_big Big.id_eps then*)
+                        if Big.equal state ic then
+                            ic,true
+                        else
+                            res_big,res_i
                     else
-                        res
+                        res_big,res_i
                 else
-                    res  
-        )
-        Big.id_eps
-        checked
+                    res_big,res_i
+            )
+            (Big.id_eps,false)
+            checked
 let unify_with_checked su checked =
     List.fold_left 
     (
         fun (res_unique,res_unified) (res_big, tl) ->
-            let does_exist = does_state_exist_in_checked res_big checked
+            let from_checked, does_exist = equal_state_from_checked res_big checked 
                 in
                     if does_exist then
-                        let from_checked = get_equal_state_from_checked res_big checked 
-                        in
                             let unified_part_res, _ = translate_all_iso_trans from_checked tl
                             in
                                res_unique,[from_checked, unified_part_res]@res_unified
                     else
                         [res_big, tl]@res_unique,res_unified 
+    )
+    ([],[])
+    su
+let group_with_checked su checked =
+    List.fold_left 
+    (
+        fun (res_unified,res_unique) (res_big, tl) ->
+            let from_checked, does_exist = equal_state_from_checked res_big checked 
+                in
+                    if does_exist then
+                            let unified_part_res, _ = split_into_iso_trans from_checked tl
+                            in
+                               [from_checked, unified_part_res]@res_unified,res_unique
+                    else
+                        res_unified ,[res_big, tl]@res_unique
     )
     ([],[])
     su
@@ -138,31 +184,104 @@ let rec _explore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(c
                                         part_result@given_transitions,given_unique_states,last_reached_step
                             else
                             [],checked,current_step
+let rec _explore_ss2 ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:Big.t list) ~(unchecked:Big.t list) =
+        match unchecked with
+        | [] -> [],checked,current_step
+        | s::rest -> 
+            let res_su = step_grouped_iso_res s rules 
+            in
+                let unified_with_checked,unieque = group_with_checked res_su checked  
+                in 
+                    let part_new_unchecked, part_result1  = List.split unieque
+                    and _ , part_result2 = List.split unified_with_checked
+                    in
+                        let part_result = List.concat part_result1 @ List.concat part_result2
+                        in
+                            if current_step < max_steps then
+                                let new_checked = s::checked
+                                and new_unchecked = rest@part_new_unchecked
+                                and new_current_step = current_step + 1
+                                in
+                                    let given_transitions,given_unique_states,last_reached_step = _explore_ss2 ~rules ~max_steps ~current_step:new_current_step ~checked:new_checked ~unchecked:new_unchecked
+                                    in
+                                        part_result@given_transitions,given_unique_states,last_reached_step
+                            else
+                            [],checked,current_step
 let explore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     let checked = []
     and unchecked = [s0]
     and current_step = 0 
     in
-        _explore_ss ~rules ~max_steps ~current_step ~checked ~unchecked 
+        _explore_ss2 ~rules ~max_steps ~current_step ~checked ~unchecked 
 let parapply_trr (b:Big.t) (r:react) noc =
     let occs = Big.occurrences ~target:b ~pattern:r.lhs
     in  
         let par_occs = Parmap.L occs
         in
             Parmap.parfold (fun occ res -> apply_trr_with_occ b r occ :: res) par_occs [] (fun part_res1 part_res2 -> part_res1@part_res2) ~ncores:noc
+let parsplit_into_iso_trans (patt:Big.t) (rest:trans Parmap.sequence) =
+    let patt_key = Big.key patt
+    in
+        Parmap.parfold
+            (
+                fun t (res_eq,res_neq) -> 
+                    if Big.key t.res_state = patt_key then
+                        if Big.equal t.res_state patt then
+                            t::res_eq,res_neq
+                        else
+                            res_eq,t::res_neq
+                    else
+                        res_eq,t::res_neq
+            )
+            rest
+            ([],[])
+            (fun (eq1,neq1) (eq2,neq2) -> eq1@eq2, neq1@neq2 )
+let partranslate_all ors ttl noc =
+    Parmap.parfold (fun t res -> translate_trans ~translated:t ~output_res_state:ors::res) ttl [] (fun r1 r2 -> r1@r2) ~ncores:noc
+let partranslate_all_iso_trans (patt:Big.t) (all:trans Parmap.sequence) noc =
+    let eq,neq = parsplit_into_iso_trans patt all
+    in
+        let teq = partranslate_all patt (Parmap.L eq) noc
+        in
+            teq,neq
+let rec parunify_based_on_iso_res_states lot noc = 
+    match lot with
+    | [] -> []
+    | t::rest -> 
+        let merged_with_t, rest' = partranslate_all_iso_trans t.res_state (Parmap.L rest) noc
+        in 
+            let merged_with_rest = parunify_based_on_iso_res_states rest' noc
+            in 
+                [t.res_state,t::merged_with_t] @ merged_with_rest
 let parstep_unified_res b lr noc =
     let raw_result = Parmap.parfold (fun r res -> parapply_trr b r noc @ res) lr [] (fun part_res1 part_res2 -> part_res1 @ part_res2) ~ncores:noc
     in  
-        let unified_result = unify_based_on_iso_res_states raw_result
+        let unified_result = parunify_based_on_iso_res_states raw_result noc
         in
             unified_result
-let rec _parexplore_ss ~(rules:react Parmap.sequence) ~(max_steps:int) ~(current_step:int) ~(checked:Big.t list) ~(unchecked:Big.t list) ~(ncores:int)=
+let parunify_with_checked su checked noc =
+    Parmap.parfold
+    (
+        fun (res_big, tl) (res_unique,res_unified) ->
+            let from_checked, does_exist = equal_state_from_checked res_big checked 
+                in
+                    if does_exist then
+                            let unified_part_res, _ = partranslate_all_iso_trans from_checked tl noc
+                            in
+                               res_unique,[from_checked, unified_part_res]@res_unified
+                    else
+                        [res_big, tl]@res_unique,res_unified 
+    )
+    su
+    ([],[])
+    (fun (runiq1,runif1) (runiq2,runif2) -> runiq1@runiq2,runif1@runif2)
+let rec _parexplore_ss ~rules ~(max_steps:int) ~(current_step:int) ~(checked:Big.t list) ~(unchecked:Big.t list) ~(ncores:int)=
         match unchecked with
         | [] -> [],checked,current_step
         | s::rest -> 
-            let res_su = parstep_unified_res s rules ncores
+            let res_su = step_unified_res s rules
             in
-                let unieque,unified_with_checked = unify_with_checked res_su checked  
+                let unieque,unified_with_checked = unify_with_checked res_su checked
                 in 
                     let part_new_unchecked, part_result1  = List.split unieque
                     and _ , part_result2 = List.split unified_with_checked
@@ -183,6 +302,6 @@ let parexplore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) ~(ncores:int)
     let checked = []
     and unchecked = [s0]
     and current_step = 0 
-    and parrules = Parmap.L rules
+    and _ = Parmap.L rules
     in
-        _parexplore_ss ~rules:parrules ~max_steps ~current_step ~checked ~unchecked ~ncores
+        _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked ~ncores
