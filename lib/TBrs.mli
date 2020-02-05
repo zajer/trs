@@ -15,5 +15,5 @@ val parexplore_ss : s0:Big.t -> rules:react list -> max_steps:int -> trans list*
 val norm_ss : trans list -> Big.t list -> trans list 
 val parse_trans_unsafe : init:Big.t -> result:Big.t -> Iso.t ->Fun.t -> string -> trans
 val parnorm_ss : trans list -> Big.t list -> trans list 
-val explore_ss_and_index : s0:Big.t -> rules:react list -> max_steps:int -> (trans*int*int) list* (Big.t*int) list*int
-val parexplore_ss_and_index : s0:Big.t -> rules:react list -> max_steps:int -> (trans*int*int) list* (Big.t*int) list*int
+val explore_ss_norm_and_index : s0:Big.t -> rules:react list -> max_steps:int -> (trans*int*int) list* (Big.t*int) list*int
+val parexplore_ss_norm_and_index : s0:Big.t -> rules:react list -> max_steps:int -> (trans*int*int) list* (Big.t*int) list*int

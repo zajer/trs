@@ -284,7 +284,7 @@ let parindex_transitions_by_physical_address transitions indexed_unique_states =
                 (t,idx_of_init,idx_of_res)
         )  
         transitions
-let explore_ss_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
+let explore_ss_norm_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     let checked = []
     and unchecked = [s0]
     and current_step = 0 
@@ -295,7 +295,7 @@ let explore_ss_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
             and indexed_unique_states = List.mapi (fun i s -> (s,i)) unique_states
             in
                 index_transitions_by_structure normalized_result indexed_unique_states,indexed_unique_states,performed_steps
-let parexplore_ss_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
+let parexplore_ss_norm_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     let checked = []
     and current_step = 0 
     and unchecked = [s0]
