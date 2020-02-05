@@ -248,3 +248,15 @@ let parse_trans_unsafe ~(init:Big.t) ~(result:Big.t) (part:Iso.t) (residue:Fun.t
     let result = {init_state=init ; res_state=result ; participants=part ; residue=residue ; react_label=label}
     in
         result
+let parnorm_ss trans unique_states = 
+    let pus = Parmap.L unique_states
+    in
+        Parmap.parfold 
+            (fun us res -> 
+                let part_res,_ = translate_all_iso_trans us trans
+                in
+                    part_res@res
+            ) 
+            pus 
+            [] 
+            (fun pr1 pr2 -> pr1@pr2)
