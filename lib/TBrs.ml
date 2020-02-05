@@ -50,7 +50,7 @@ let translate_trans ~(output_res_state:Big.t) ~(translated:trans) =
         in
             {
                 init_state=translated.init_state;
-                res_state=translated.res_state; 
+                res_state=output_res_state; 
                 residue=res_residue_fun;
                 participants=translated.participants;
                 react_label=translated.react_label
@@ -71,7 +71,7 @@ let split_into_iso_trans (patt:Big.t) (rest:trans list) =
 let translate_all ors ttl =
     List.fold_right (fun t res -> translate_trans ~translated:t ~output_res_state:ors::res) ttl []
 let translate_all_iso_trans (patt:Big.t) (all:trans list) =
-    let eq,neq = split_into_iso_trans patt all
+    let eq,neq = split_into_iso_trans patt all    
     in
         let teq = translate_all patt eq
         in
@@ -235,3 +235,16 @@ let parexplore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     and unchecked = [s0]
     in
         _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked
+let rec _norm_ss trans unique_states = 
+    match unique_states with
+    | [] -> []
+    | us::rest_states ->
+        let normlaised,rest_trans = translate_all_iso_trans us trans
+        in
+            normlaised@_norm_ss rest_trans rest_states
+let norm_ss trans unique_states =
+    _norm_ss trans unique_states
+let parse_trans_unsafe ~(init:Big.t) ~(result:Big.t) (part:Iso.t) (residue:Fun.t) label = 
+    let result = {init_state=init ; res_state=result ; participants=part ; residue=residue ; react_label=label}
+    in
+        result
