@@ -260,3 +260,51 @@ let parnorm_ss trans unique_states =
             pus 
             [] 
             (fun pr1 pr2 -> pr1@pr2)
+let find_equal_state_index_by_address s lois =
+    let _, idx = List.fold_left (fun (res_flag,res_idx) (cs,i) -> if not res_flag && cs == s then true,i else false,res_idx) (false,-1) lois
+    in
+        match idx with
+        | -1 -> raise (invalid_arg "equal state not found!")
+        | _ -> idx
+let index_transitions_by_physical_address transitions indexed_unique_states =
+    List.map
+        (fun t ->  
+            let idx_of_init = find_equal_state_index_by_address t.init_state indexed_unique_states
+            and idx_of_res = find_equal_state_index_by_address t.res_state indexed_unique_states
+            in
+                (t,idx_of_init,idx_of_res)
+        )  
+        transitions
+let parindex_transitions_by_physical_address transitions indexed_unique_states =
+    Parmap.parmap
+        (fun t ->  
+            let idx_of_init = find_equal_state_index_by_address t.init_state indexed_unique_states
+            and idx_of_res = find_equal_state_index_by_address t.res_state indexed_unique_states
+            in
+                (t,idx_of_init,idx_of_res)
+        )  
+        transitions
+let explore_ss_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
+    let checked = []
+    and unchecked = [s0]
+    and current_step = 0 
+    in
+        let (raw_result,unique_states,performed_steps) = _explore_ss ~rules ~max_steps ~current_step ~checked ~unchecked 
+        in
+            let normalized_result = norm_ss raw_result unique_states
+            and indexed_unique_states = List.mapi (fun i s -> (s,i)) unique_states
+            in
+                index_transitions_by_physical_address normalized_result indexed_unique_states,indexed_unique_states,performed_steps
+let parexplore_ss_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
+    let checked = []
+    and current_step = 0 
+    and unchecked = [s0]
+    in
+        let (raw_result,unique_states,performed_steps) = _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked
+        in
+        let normalized_result = parnorm_ss raw_result unique_states
+            and indexed_unique_states = List.mapi (fun i s -> (s,i)) unique_states
+            in
+                let normalized_parseq = Parmap.L normalized_result
+                in
+                parindex_transitions_by_physical_address normalized_parseq indexed_unique_states,indexed_unique_states,performed_steps
