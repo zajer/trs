@@ -275,7 +275,42 @@ let index_transitions_by_structure transitions indexed_unique_states =
                 (t,idx_of_init,idx_of_res)
         )  
         transitions
-let parindex_transitions_by_physical_address transitions indexed_unique_states =
+let index_grouped_transitions_by_structure grouped_transitions indexed_unique_states =
+    List.map
+        (fun (b,tl) ->
+            let idx_of_res = find_equal_state_index_by_structure b indexed_unique_states
+            in
+                let tl' = 
+                    List.map 
+                        (fun t -> 
+                            let idx_of_init = find_equal_state_index_by_structure t.init_state indexed_unique_states
+                            in
+                                t,idx_of_init,idx_of_res
+                        ) 
+                        tl
+                in
+                    tl'
+        )  
+        grouped_transitions
+let parindex_grouped_transitions_by_structure grouped_transitions indexed_unique_states =
+    Parmap.parmap
+        (fun (b,tl) ->
+            let idx_of_res = find_equal_state_index_by_structure b indexed_unique_states
+            and tl_seq = Parmap.L tl
+            in
+                let tl' = 
+                    Parmap.parmap 
+                        (fun t -> 
+                            let idx_of_init = find_equal_state_index_by_structure t.init_state indexed_unique_states
+                            in
+                                t,idx_of_init,idx_of_res
+                        ) 
+                        tl_seq
+                in
+                    tl'
+        )  
+        grouped_transitions
+let parindex_transitions_by_structure transitions indexed_unique_states =
     Parmap.parmap
         (fun t ->  
             let idx_of_init = find_equal_state_index_by_structure t.init_state indexed_unique_states
@@ -284,6 +319,45 @@ let parindex_transitions_by_physical_address transitions indexed_unique_states =
                 (t,idx_of_init,idx_of_res)
         )  
         transitions
+let explore_ss_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
+    let checked = []
+    and unchecked = [s0]
+    and current_step = 0 
+    in
+        let (raw_result,unique_states,performed_steps) = _explore_ss ~rules ~max_steps ~current_step ~checked ~unchecked 
+        in
+            let grouped_result = group_based_on_iso_res_states raw_result
+            in
+                let grouped_with_unique, rest = group_with_checked grouped_result unique_states
+                in
+                    match rest with
+                    | [] ->
+                        let indexed_unique_states = List.mapi (fun i s -> (s,i)) unique_states
+                        in
+                            let res2concat = index_grouped_transitions_by_structure grouped_with_unique indexed_unique_states
+                            in
+                                List.concat res2concat,indexed_unique_states,performed_steps
+                    | _ -> raise (invalid_arg "not every result was matched against known unique states!")
+let parexplore_ss_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
+    let checked = []
+    and current_step = 0 
+    and unchecked = [s0]
+    in
+        let (raw_result,unique_states,performed_steps) = _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked
+        in
+        let grouped_result = group_based_on_iso_res_states raw_result
+            in
+                let grouped_with_unique, rest = group_with_checked grouped_result unique_states
+                in
+                    match rest with
+                    | [] ->
+                        let indexed_unique_states = List.mapi (fun i s -> (s,i)) unique_states
+                        and grouped_with_unique_seq = Parmap.L grouped_with_unique
+                        in
+                            let res2concat = parindex_grouped_transitions_by_structure grouped_with_unique_seq indexed_unique_states
+                            in
+                                List.concat res2concat,indexed_unique_states,performed_steps
+                    | _ -> raise (invalid_arg "not every result was matched against known unique states!")
 let explore_ss_norm_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     let checked = []
     and unchecked = [s0]
@@ -307,4 +381,4 @@ let parexplore_ss_norm_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int
             in
                 let normalized_parseq = Parmap.L normalized_result
                 in
-                parindex_transitions_by_physical_address normalized_parseq indexed_unique_states,indexed_unique_states,performed_steps
+                parindex_transitions_by_structure normalized_parseq indexed_unique_states,indexed_unique_states,performed_steps
