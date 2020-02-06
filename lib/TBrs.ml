@@ -130,19 +130,33 @@ let group_with_checked su checked =
     )
     ([],[])
     su
+let pargroup_with_checked (su:(Big.t * trans list) Parmap.sequence ) checked =
+    Parmap.parfold
+    (
+        fun (res_big, tl)  (res_unified,res_unique) ->
+            let from_checked, does_exist = equal_state_from_checked res_big checked 
+                in
+                    if does_exist then
+                        [from_checked, tl]@res_unified,res_unique
+                    else
+                        res_unified ,[res_big, tl]@res_unique
+    )
+    su
+    ([],[])
+    (fun (unif_p1,uniq_p1) (unif_p2,uniq_p2) -> unif_p1@unif_p2,uniq_p1@uniq_p2 )
 let split_into_iso_bigs (patt:Big.t) (rest:Big.t list) =
     let patt_key = Big.key patt
     in
-        List.fold_right 
+        List.fold_left 
             (
-                fun t (res_eq,res_neq) -> 
+                fun (res_eq,res_neq) t -> 
                     if Big.key t = patt_key && Big.equal t patt then
                             t::res_eq,res_neq
                     else
                         res_eq,t::res_neq
             )
-            rest
             ([],[])
+            rest
 let rec filter_iso_dupl ~filter_of:x ~filter_from:y = 
     match x with
         | [] -> y
@@ -193,7 +207,7 @@ let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:Big.t list)
             fun ucs (trans,new_unchecked_states) ->
                 let res_su = step_grouped_iso_res ucs rules
                 in
-                    let unified_with_checked,unique = group_with_checked res_su (ucs::checked) 
+                    let unified_with_checked,unique = pargroup_with_checked (Parmap.L res_su) (ucs::checked) 
                     in
                         let new_unchecked_filtered_of_checked, part_result1  = List.split unique
                         and _ , part_result2 = List.split unified_with_checked
@@ -355,7 +369,7 @@ let parexplore_ss_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
         in
         let grouped_result = pargroup_based_on_iso_res_states raw_result (Parmap.L unique_states)
             in
-                let grouped_with_unique, rest = group_with_checked grouped_result unique_states
+                let grouped_with_unique, rest = pargroup_with_checked (Parmap.L grouped_result) unique_states
                 in
                     match rest with
                     | [] ->
