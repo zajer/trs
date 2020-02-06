@@ -338,6 +338,14 @@ let explore_ss_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
                             in
                                 List.concat res2concat,indexed_unique_states,performed_steps
                     | _ -> raise (invalid_arg "not every result was matched against known unique states!")
+let pargroup_based_on_iso_res_states lot kus = 
+    Parmap.parmap 
+        (fun us ->
+            let equal_with_t, _ = split_into_iso_trans us lot     
+            in
+                (us,equal_with_t)
+        )
+        kus
 let parexplore_ss_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     let checked = []
     and current_step = 0 
@@ -345,7 +353,7 @@ let parexplore_ss_and_index ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     in
         let (raw_result,unique_states,performed_steps) = _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked
         in
-        let grouped_result = group_based_on_iso_res_states raw_result
+        let grouped_result = pargroup_based_on_iso_res_states raw_result (Parmap.L unique_states)
             in
                 let grouped_with_unique, rest = group_with_checked grouped_result unique_states
                 in
