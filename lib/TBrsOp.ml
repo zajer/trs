@@ -169,9 +169,9 @@ let find_iso_indexed_big (patt:Big.t) (loib:(Big.t*int) list) =
             ( (Big.id_eps,-1) ,[],false)
             loib
 (* 
-    Zwróć wszystkie pary (Big.t * int) z reindex_from, które nie występują w reindex_of. 
+    Zwraca wszystkie pary (Big.t * int) z reindex_from, które nie występują w reindex_of. 
     Dodatkowo zwraca izomorfizm indeksów z rfr na rof dla elementów rfr, które występują w rof.
-    Założenia: rof i rfr są pogrupowane tzn. nie ma dwóch izomorficznych dwugrafów na żadnej liście, które miałyby różne indeksy.
+    Założenia 1: rof i rfr są pogrupowane tzn. nie ma dwóch izomorficznych dwugrafów na żadnej liście, które miałyby różne indeksy.
     Uproszczając: na żadnej liście nie ma dwóch izomorficznych do siebie dwugrafów.
 *)
 let rec filter_and_reindex_duplicates ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
@@ -186,6 +186,15 @@ let rec filter_and_reindex_duplicates ~reindex_of:(rof:(Big.t * int) list ) ~rei
                     rest_unique,(rfr_idx,rof_idx)::rest_isos
                 else
                     rest_unique,rest_isos
+(*
+    Założenie: indeksacja ci jest od 0 do n-1 (ci to liczba elementow juz indeksowanych)
+*)
+let regen_indexing (ci:int) (ri:(Big.t * int) list) =
+    let indexing = List.mapi (fun i (b,_) -> b,i+ci) ri
+    in
+        let iso = List.map2 (fun (_,oi) (_,ri) -> (oi,ri)) ri indexing
+        in
+            indexing,iso
 let apply_reindexing loit ridx =
     let tmp = Parmap.L loit
     in
@@ -222,7 +231,35 @@ let initial_indexing (btll:(Big.t * t list) list ) ~(init_state_idx:int) ~(check
                 fun (ibs_rp1,its_rp1) (ibs_rp2,its_rp2) ->
                     ibs_rp1@ibs_rp2,its_rp1@its_rp2
             )
-
+let _gen_trans_and_unique_states 
+    ~(rules:react list) 
+    ~(checked:(Big.t*int) list) 
+    ~unchecked 
+    ~checked_unchecked_sum:(c_uc_sum:int) 
+    ~my_state:ms
+    ~my_state_idx:(ms_idx:int) 
+    ~trans
+    ~new_unchecked_states
+    ~new_unchecked_states_number
+    =
+    let res_su = step_grouped_iso_res ms rules
+    in
+        let indexed_res_states, initially_indexed_transitions = initial_indexing res_su ~init_state_idx:ms_idx  ~checked_unchecked_sum:c_uc_sum
+        in
+            let filtered_of_checked,iso_checked = filter_and_reindex_duplicates ~reindex_of:checked ~reindex_from:indexed_res_states
+            in
+                let trans_reindexed_by_checked = apply_reindexing initially_indexed_transitions iso_checked
+                and filtered_of_unchecked,iso_unchecked = filter_and_reindex_duplicates ~reindex_of:unchecked ~reindex_from:filtered_of_checked
+                in
+                    let trans_reindexed_by_unchecked = apply_reindexing trans_reindexed_by_checked iso_unchecked
+                    and filtered_of_results, iso_results = filter_and_reindex_duplicates ~reindex_of:new_unchecked_states ~reindex_from:filtered_of_unchecked
+                    in
+                        let trans_reindexed_by_results = apply_reindexing trans_reindexed_by_unchecked iso_results
+                        and my_new_unchecked_states_reindexed,iso_reindexing = regen_indexing (c_uc_sum+new_unchecked_states_number) filtered_of_results
+                        in
+                            let my_trans = apply_reindexing trans_reindexed_by_results iso_reindexing
+                            in
+                                my_trans@trans, my_new_unchecked_states_reindexed,new_unchecked_states
 let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:Big.t list) ~unchecked =
     let converted_unchecked = Parmap.L unchecked
     in
