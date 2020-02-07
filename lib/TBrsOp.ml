@@ -150,6 +150,79 @@ let rec filter_iso_dupl ~filter_of:x ~filter_from:y =
         let _, rest_from = split_into_iso_bigs t y
         in 
             filter_iso_dupl ~filter_of:rest_of ~filter_from:rest_from
+(*
+    Przyjmuje wzorzec i pogrupowaną indeksowaną listę dwugrafów (loib).
+    Zwraca izomorficzny do wzorca dwugraf z loib wraz indeksem do niego przypisanym oraz informację czy jakikolwiek izomorficzny dwugraf został znaleziony.
+    Jeżeli nie znaleziono izomorficznego dwugrafu to jako dwugraf zwracana jest tożsamość eps i indeks -1.
+*)
+let find_iso_indexed_big (patt:Big.t) (loib:(Big.t*int) list) =
+    let patt_key = Big.key patt
+    in
+        List.fold_left 
+            (
+                fun (res_eq,res_neq,found) (t,i)  -> 
+                    if not found && Big.key t = patt_key && Big.equal t patt then
+                        (t,i),res_neq,true
+                    else
+                        res_eq,(t,i)::res_neq,found
+            )
+            ( (Big.id_eps,-1) ,[],false)
+            loib
+(* 
+    Zwróć wszystkie pary (Big.t * int) z reindex_from, które nie występują w reindex_of. 
+    Dodatkowo zwraca izomorfizm indeksów z rfr na rof dla elementów rfr, które występują w rof.
+    Założenia: rof i rfr są pogrupowane tzn. nie ma dwóch izomorficznych dwugrafów na żadnej liście, które miałyby różne indeksy.
+    Uproszczając: na żadnej liście nie ma dwóch izomorficznych do siebie dwugrafów.
+*)
+let rec filter_and_reindex_duplicates ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
+    match rof with
+        | [] -> rfr, []
+        | (t,rof_idx)::rest_of -> 
+        let (_ ,rfr_idx), rest_from,found = find_iso_indexed_big t rfr
+        in 
+            let rest_unique,rest_isos = filter_and_reindex_duplicates ~reindex_of:rest_of ~reindex_from:rest_from
+            in
+                if found then
+                    rest_unique,(rfr_idx,rof_idx)::rest_isos
+                else
+                    rest_unique,rest_isos
+let apply_reindexing loit ridx =
+    let tmp = Parmap.L loit
+    in
+        Parmap.parmap
+            (
+                fun (t,init_idx,res_idx) ->
+                    let res_idx_reindexed = List.find_opt (fun (orig_idx,_) -> orig_idx = res_idx ) ridx
+                        in
+                            match res_idx_reindexed with
+                            | None -> t,init_idx,res_idx
+                            | Some (_, res_idx') -> t,init_idx,res_idx'
+            )
+            tmp
+let initial_indexing (btll:(Big.t * t list) list ) ~(init_state_idx:int) ~(checked_unchecked_sum:int) =
+    let tmp = Parmap.L btll
+    in
+        Parmap.parmapifold
+            (
+                fun res_state_idx_no_shift (b,tl) ->
+                    let init_val_of_res_state_idx = res_state_idx_no_shift+checked_unchecked_sum+1
+                    in
+                        let indexed_transitions = 
+                            List.fold_left (fun res t -> (t,init_state_idx,init_val_of_res_state_idx)::res) [] tl
+                        in
+                            (b,init_val_of_res_state_idx),indexed_transitions
+            )
+            tmp
+            (
+                fun (ib,its) (res_ib,res_its) ->
+                    ib::res_ib,its@res_its
+            )
+            ([],[])
+            (
+                fun (ibs_rp1,its_rp1) (ibs_rp2,its_rp2) ->
+                    ibs_rp1@ibs_rp2,its_rp1@its_rp2
+            )
+
 let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:Big.t list) ~unchecked =
     let converted_unchecked = Parmap.L unchecked
     in
