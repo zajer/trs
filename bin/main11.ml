@@ -175,20 +175,21 @@ let estConn2AF_react = TBrsOp.parse_react "estConn2AF" ~lhs:estConn2AF_lhs ~rhs:
 let rules = [mov_react;estConn1AF_react;estConn2AF_react];;
 Parmap.set_default_ncores 4
 
-let tl,ss,ms = TBrsOp.parexplore_ss ~s0 ~rules ~max_steps:300;;
+let tl,ss,ms = TBrsOp.parexplore_ss ~s0 ~rules ~max_steps:2;;
 
 print_endline ("Liczba przejść:" ^ ( string_of_int (List.length tl) ) );
 print_endline ("Liczba stanów:" ^ ( string_of_int (List.length ss) ) );;
-(*
+
 List.iteri 
     (
-        fun i t -> 
+        fun i (_,idx) -> 
             print_endline ("Stan:"^(string_of_int i));
-            print_endline ((Big.to_string t)^"\n")
+            (*print_endline ((Big.to_string b)^"\n");*)
+            print_endline ("Indeks:"^(string_of_int idx));
     ) 
     ss;
 
-*)
+
 (*
 List.iteri 
     (

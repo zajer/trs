@@ -14,7 +14,7 @@
         {
             "label": "run-exe",
             "type": "shell",
-            "command": "./_build/default/bin/main11.exe",
+            "command": "./_build/default/bin/main12.exe",
             "group": {
                 "kind": "build",
                 "isDefault": true
