@@ -59,10 +59,30 @@ let rhs = Big.of_string r1_to_parse
 let f_rnm = Fun.empty |> Fun.add 0 0
 let react = TBrsOp.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None;;
 
-let tl,ss,uss,ms = TBrsOp.parexplore_ss ~s0 ~rules:[react] ~max_steps:5;;
+let tl,ss,uss,ms = TBrsOp.parexplore_ss ~s0 ~rules:[react] ~max_steps:9;;
 
+let magic x par =
+    let y = Big.of_string
+    (*"{(0, A:0),(1, X:0),(2, A:0),(3, X:0),(4, X:0),(5, X:0),(6, X:0),(7, B:0),(8, C:0)}\n0 9 0\n010011101\n000000000\n000100010\n000000000\n000000000\n000000000\n000000000\n000000000\n000000000"*)
+    "{(0, A:0),(1, X:0),(2, A:0),(3, X:0),(4, X:0),(5, X:0),(6, X:0),(7, X:0),(8, X:0),(9, X:0),(10, X:0),(11, B:0),(12, C:0)}\n0 13 0\n0100011101110\n0000000000000\n0001100010001\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000"
+    in
+        let found = List.fold_left 
+            (
+                fun res (b,ri)-> if Big.equal b y then ri::res else res
+            )
+            []
+            x
+        in
+            print_endline (par^"Znaleziono "^(string_of_int (List.length found))^" wystąpień złotego dwugrafu");
+            List.iteri 
+                (
+                    fun i idx -> 
+                        ((string_of_int i)^" wystąpienie wskazuje na idx:"^(string_of_int idx)) |> print_endline
+                )
+                found;;
 
-
+magic (ss@uss) "hehe"
+(*
 print_endline ("Liczba przejść:" ^ ( string_of_int (List.length tl) ) );
 
 print_endline ("Liczba unikalnych stanów:" ^ ( string_of_int (List.length (ss@uss)) ) );
@@ -88,3 +108,4 @@ List.iteri
     ) 
     tl;
 
+*)

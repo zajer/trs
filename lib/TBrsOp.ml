@@ -249,6 +249,44 @@ let initial_indexing (btll:(Big.t * t list) list ) ~(init_state_idx:int) ~(check
                 fun (ibs_rp1,its_rp1) (ibs_rp2,its_rp2) ->
                     ibs_rp1@ibs_rp2,its_rp1@its_rp2
             )
+let magic x par =
+    let y = Big.of_string
+    (*"{(0, A:0),(1, X:0),(2, A:0),(3, X:0),(4, X:0),(5, X:0),(6, X:0),(7, B:0),(8, C:0)}\n0 9 0\n010011101\n000000000\n000100010\n000000000\n000000000\n000000000\n000000000\n000000000\n000000000"*)
+    "{(0, A:0),(1, X:0),(2, A:0),(3, X:0),(4, X:0),(5, X:0),(6, X:0),(7, X:0),(8, X:0),(9, X:0),(10, X:0),(11, B:0),(12, C:0)}\n0 13 0\n0100011101110\n0000000000000\n0001100010001\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000"
+    in
+        let found = List.fold_left 
+            (
+                fun res (t,_,ri)-> if Big.equal t.rs y then ri::res else res
+            )
+            []
+            x
+        in
+            print_endline (par^"Znaleziono "^(string_of_int (List.length found))^" wystąpień złotego dwugrafu");
+            List.iteri 
+                (
+                    fun i idx -> 
+                        ((string_of_int i)^" wystąpienie wskazuje na idx:"^(string_of_int idx)) |> print_endline
+                )
+                found
+let magic2 x par =
+    let y = Big.of_string
+    (*"{(0, A:0),(1, X:0),(2, A:0),(3, X:0),(4, X:0),(5, X:0),(6, X:0),(7, B:0),(8, C:0)}\n0 9 0\n010011101\n000000000\n000100010\n000000000\n000000000\n000000000\n000000000\n000000000\n000000000"*)
+    "{(0, A:0),(1, X:0),(2, A:0),(3, X:0),(4, X:0),(5, X:0),(6, X:0),(7, X:0),(8, X:0),(9, X:0),(10, X:0),(11, B:0),(12, C:0)}\n0 13 0\n0100011101110\n0000000000000\n0001100010001\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000\n0000000000000"
+    in
+        let found = List.fold_left 
+            (
+                fun res (b,ri)-> if Big.equal b y then ri::res else res
+            )
+            []
+            x
+        in
+            print_endline (par^"Znaleziono "^(string_of_int (List.length found))^" wystąpień złotego dwugrafu");
+            List.iteri 
+                (
+                    fun i idx -> 
+                        ((string_of_int i)^" wystąpienie wskazuje na idx:"^(string_of_int idx)) |> print_endline
+                )
+                found;;
 let _gen_trans_and_unique_states 
     ~(rules:react list) 
     ~(checked:(Big.t*int) list) 
@@ -277,9 +315,17 @@ let _gen_trans_and_unique_states
                         in
                             let my_trans = apply_reindexing trans_reindexed_by_results iso_reindexing
                             in
+                                (*let _ = print_endline ("swag.l = "^(string_of_int new_unchecked_states_number))
+                                and _ = print_endline "yolo"
+                                and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) my_new_unchecked_states_reindexed
+                                and _ = print_endline "swag"
+                                and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) new_unchecked_states
+                                and _ = print_endline "yolo@swag"
+                                and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) (my_new_unchecked_states_reindexed@new_unchecked_states)
+                                in*)
                                 my_trans@trans, 
                                 my_new_unchecked_states_reindexed@new_unchecked_states,
-                                (List.length my_new_unchecked_states_reindexed)
+                                ( (List.length my_new_unchecked_states_reindexed)+new_unchecked_states_number )
 let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:(Big.t * int) list) ~unchecked =
     let converted_unchecked = Parmap.L unchecked
     and checked_unchecked_sum = List.length checked + List.length unchecked
@@ -310,6 +356,25 @@ let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:(Big.t * in
                     in
                         let trans_part2_reindexed_by_shift = apply_reindexing trans_part2_unique iso_part2_reindex
                         in
+                            (*let _ = magic trans_part2 "tp2-"
+                            and _ = magic2 new_unchecked_part1 "nup1-"
+                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) new_unchecked_part1
+                            and _ = magic2 new_unchecked_part2 "nup2-"
+                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) new_unchecked_part2
+                            and _ = print_endline "filtered part 2:"
+                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) filtered_part2
+                            and _ = print_endline "iso shift:"
+                            and _ = List.iter (fun (i1,i2)-> print_endline ("("^(string_of_int i1)^","^(string_of_int i2)^")") ) iso_part2_reindex
+                            and _ = magic2 new_unchecked_part2_reindexed "nup2-shifted-"*)
+                            (*let _ = print_endline "nup1"
+                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) new_unchecked_part1
+                            and _ = print_endline "nup2"
+                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) new_unchecked_part2
+                            and _ = print_endline "nup2-shifted"
+                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) new_unchecked_part2_reindexed
+                            and _ = print_endline "nup1@nup2-shifted"
+                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) (new_unchecked_part1@new_unchecked_part2_reindexed)
+                            in*)
                             trans_part1@trans_part2_reindexed_by_part1@trans_part2_reindexed_by_shift,new_unchecked_part1@new_unchecked_part2_reindexed,new_length
         )
 let rec _parexplore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:(Big.t*int) list) ~unchecked =
@@ -329,6 +394,10 @@ let parexplore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     and current_step = 0 
     and unchecked = [s0,0]
     in
-        _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked
+        let x,y,z,w = _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked
+        in
+            let _ = magic x "omg omg omg-"
+            in
+            x,y,z,w
         
 
