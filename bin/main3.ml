@@ -53,12 +53,12 @@ let r1'_to_parse =
 00000
 "
 
-let s0 = Big.of_string s0'_to_parse
-let lhs = Big.of_string r0'_to_parse
-let rhs = Big.of_string r1'_to_parse
+let s0 = Big.of_string s0_to_parse
+let lhs = Big.of_string r0_to_parse
+let rhs = Big.of_string r1_to_parse
 let f_rnm = Fun.empty |> Fun.add 0 0
 let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
-let tl,ss,ms = TBrs.explore_ss ~s0 ~rules:[react] ~max_steps:10;;
+let tl,ss,ms = TBrs.explore_ss ~s0 ~rules:[react] ~max_steps:1;;
 
 print_endline ("Liczba przejść:" ^ ( string_of_int (List.length tl) ) );
 List.iteri (fun i t -> print_endline ("Przejście:"^(string_of_int i));print_endline ((TBrs.trans_to_string t)^"\n") ) tl;

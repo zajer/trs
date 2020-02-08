@@ -57,28 +57,34 @@ let s0 = Big.of_string s0_to_parse
 let lhs = Big.of_string r0_to_parse
 let rhs = Big.of_string r1_to_parse
 let f_rnm = Fun.empty |> Fun.add 0 0
-let react = TBrsOp.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
-let tl,ss,ms = TBrsOp.parexplore_ss ~s0 ~rules:[react] ~max_steps:3;;
+let react = TBrsOp.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None;;
+
+let tl,ss,uss,ms = TBrsOp.parexplore_ss ~s0 ~rules:[react] ~max_steps:5;;
+
+
 
 print_endline ("Liczba przejść:" ^ ( string_of_int (List.length tl) ) );
 
-print_endline ("Liczba unikalnych stanów:" ^ ( string_of_int (List.length ss) ) );
+print_endline ("Liczba unikalnych stanów:" ^ ( string_of_int (List.length (ss@uss)) ) );
+print_newline ();
 List.iteri 
     (
         fun i (b,idx) -> 
             print_endline ("Stan:"^(string_of_int i));
-            print_endline ((Big.to_string b)^"\n");
+            print_endline ((Big.to_string b));
             print_endline ("Indeks:"^(string_of_int idx));
     ) 
-    ss;
+    (ss@uss);
+  
 
+print_newline ();
 List.iteri 
     (
-        fun i (_,ii,ri) -> 
-        print_endline ("Przejście:"^(string_of_int i));
-        (*print_endline ((TBrsOp.trans_to_string t)^"\n") *)
-        print_endline ("From:"^(string_of_int ii));
-        print_endline ("To:"^(string_of_int ri));
+        fun i (t,ii,ri) -> 
+        print_endline ("\nPrzejście:"^(string_of_int i));
+        print_endline ((TBrsOp.trans_to_string t));
+        print_endline ("From idx:"^(string_of_int ii));
+        print_endline ("To idx:"^(string_of_int ri));
     ) 
     tl;
 

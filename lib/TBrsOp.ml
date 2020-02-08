@@ -7,7 +7,7 @@ let trans_to_string t =
     and residue_fun_label = "Residue fun:"
     and participant_label = "Participants:"
     in
-        let init_state = init_state_label^"\n"^(Big.to_string t.rs)
+        let init_state = init_state_label^"\n"^(Big.to_string t.is)
         and res_state = res_state_label^"\n"^(Big.to_string t.rs)
         and residue_fun = residue_fun_label^"\n"^(Fun.to_string t.rf)
         and participants = participant_label^"\n"^(Iso.to_string t.p)
@@ -208,6 +208,24 @@ let apply_reindexing loit ridx =
                             | Some (_, res_idx') -> t,init_idx,res_idx'
             )
             tmp
+let apply_reindexing_exclude_rest loit ridx =
+    let tmp = Parmap.L loit
+    in
+        Parmap.parfold
+            (
+                fun (t,init_idx,res_idx) (res_app,res_exc) ->
+                    let res_idx_reindexed = List.find_opt (fun (orig_idx,_) -> orig_idx = res_idx ) ridx
+                        in
+                            match res_idx_reindexed with
+                            | None -> res_app,(t,init_idx,res_idx)::res_exc
+                            | Some (_, res_idx') -> (t,init_idx,res_idx')::res_app,res_exc
+            )
+            tmp
+            ([],[])
+            (
+                fun (app_p1,exc_p1) (app_p2,exc_p2) ->
+                    app_p1@app_p2,exc_p1@exc_p2
+            )        
 let initial_indexing (btll:(Big.t * t list) list ) ~(init_state_idx:int) ~(checked_unchecked_sum:int) =
     let tmp = Parmap.L btll
     in
@@ -246,7 +264,7 @@ let _gen_trans_and_unique_states
     in
         let indexed_res_states, initially_indexed_transitions = initial_indexing res_su ~init_state_idx:ms_idx  ~checked_unchecked_sum:c_uc_sum
         in
-            let filtered_of_checked,iso_checked = filter_and_reindex_duplicates ~reindex_of:checked ~reindex_from:indexed_res_states
+            let filtered_of_checked,iso_checked = filter_and_reindex_duplicates ~reindex_of:checked ~reindex_from:indexed_res_states 
             in
                 let trans_reindexed_by_checked = apply_reindexing initially_indexed_transitions iso_checked
                 and filtered_of_unchecked,iso_unchecked = filter_and_reindex_duplicates ~reindex_of:unchecked ~reindex_from:filtered_of_checked
@@ -278,7 +296,7 @@ let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:(Big.t * in
                     ~my_state_idx:i 
                     ~trans 
                     ~new_unchecked_states 
-                    ~new_unchecked_states_number                
+                    ~new_unchecked_states_number  
         )
         converted_unchecked
         ([],[],0)
@@ -287,29 +305,30 @@ let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:(Big.t * in
                 let filtered_part2,iso_part_2_to_1 = filter_and_reindex_duplicates ~reindex_of:new_unchecked_part1 ~reindex_from:new_unchecked_part2
                 and new_length = new_unchecked_length_part1 + new_unchecked_length_part2
                 in
-                    let trans_part2_reindexed_by_part1 = apply_reindexing trans_part2 iso_part_2_to_1
+                    let trans_part2_reindexed_by_part1,trans_part2_unique = apply_reindexing_exclude_rest trans_part2 iso_part_2_to_1
                     and new_unchecked_part2_reindexed,iso_part2_reindex = regen_indexing (checked_unchecked_sum+new_unchecked_length_part1) filtered_part2
                     in
-                        let trans_part2_reindexed_by_shift = apply_reindexing trans_part2_reindexed_by_part1 iso_part2_reindex
+                        let trans_part2_reindexed_by_shift = apply_reindexing trans_part2_unique iso_part2_reindex
                         in
-                            trans_part1@trans_part2_reindexed_by_shift,new_unchecked_part1@new_unchecked_part2_reindexed,new_length
+                            trans_part1@trans_part2_reindexed_by_part1@trans_part2_reindexed_by_shift,new_unchecked_part1@new_unchecked_part2_reindexed,new_length
         )
 let rec _parexplore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:(Big.t*int) list) ~unchecked =
         if current_step < max_steps then
             match unchecked with
-            | [] -> [],checked,current_step
+            | [] -> [],checked,[],current_step
             | _ ->
                 let res_trans,res_unchecked,_ = _pargen_of_trans_and_unique_states ~rules ~checked ~unchecked
                 in
-                    let given_transitions,given_unique_states,last_reached_step = _parexplore_ss ~rules ~max_steps ~current_step:(current_step+1) ~checked:(checked@unchecked) ~unchecked:res_unchecked
+                    let given_transitions,given_unique_states,given_unique_unchecked,last_reached_step = _parexplore_ss ~rules ~max_steps ~current_step:(current_step+1) ~checked:(checked@unchecked) ~unchecked:res_unchecked
                     in
-                        res_trans@given_transitions,given_unique_states,last_reached_step
-                
+                        res_trans@given_transitions,given_unique_states,given_unique_unchecked,last_reached_step 
         else
-            [],checked,current_step
+            [],checked,unchecked,current_step
 let parexplore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     let checked = []
     and current_step = 0 
     and unchecked = [s0,0]
     in
         _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked
+        
+
