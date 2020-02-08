@@ -169,13 +169,13 @@ let mov_f_rnm = Fun.empty |> Fun.add 0 0 |> Fun.add 1 2 |> Fun.add 2 1
 let estConn2AF_f_rnm = Fun.empty |> Fun.add 0 0 |> Fun.add 1 1 |> Fun.add 2 2 |> Fun.add 3 3
 let estConn1AF_f_rnm = Fun.empty |> Fun.add 0 0 |> Fun.add 1 1 |> Fun.add 2 2
 
-let mov_react = TBrsOp.parse_react "move" ~lhs:mov_lhs ~rhs:mov_rhs ~f_sm:None ~f_rnm:mov_f_rnm
-let estConn1AF_react = TBrsOp.parse_react "estConn1AF" ~lhs:estConn1AF_lhs ~rhs:estConn1AF_rhs ~f_sm:None ~f_rnm:estConn1AF_f_rnm
-let estConn2AF_react = TBrsOp.parse_react "estConn2AF" ~lhs:estConn2AF_lhs ~rhs:estConn2AF_rhs ~f_sm:None ~f_rnm:estConn2AF_f_rnm
+let mov_react = TBrs.parse_react "move" ~lhs:mov_lhs ~rhs:mov_rhs ~f_sm:None ~f_rnm:mov_f_rnm
+let estConn1AF_react = TBrs.parse_react "estConn1AF" ~lhs:estConn1AF_lhs ~rhs:estConn1AF_rhs ~f_sm:None ~f_rnm:estConn1AF_f_rnm
+let estConn2AF_react = TBrs.parse_react "estConn2AF" ~lhs:estConn2AF_lhs ~rhs:estConn2AF_rhs ~f_sm:None ~f_rnm:estConn2AF_f_rnm
 let rules = [mov_react;estConn1AF_react;estConn2AF_react];;
 Parmap.set_default_ncores 4
 
-let tl,ss,uss,ms = TBrsOp.parexplore_ss ~s0 ~rules ~max_steps:300;;
+let tl,ss,uss,ms = TBrs.parexplore_ss ~s0 ~rules ~max_steps:300;;
 
 print_endline ("Liczba przejść:" ^ ( string_of_int (List.length tl) ) );
 print_endline ("Liczba stanów:" ^ ( string_of_int (List.length ss) ) );;
@@ -186,16 +186,16 @@ List.iteri
             let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss)
             and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
             in
-                let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TBrsOp.is)
-                and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TBrsOp.rs)
+                let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TBrs.is)
+                and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TBrs.rs)
                 in
                     if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                     (
                     "Wynik "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
                     "Wyniki składowe, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
-                    "Faktyczny wynik poczatkowy:\n"^(Big.to_string (t.TBrsOp.is)) |> print_endline;
+                    "Faktyczny wynik poczatkowy:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
                     "Indeksowany wynik poczatkowy:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
-                    "Faktyczny wynik koncowy:\n"^(Big.to_string (t.TBrsOp.rs)) |> print_endline;
+                    "Faktyczny wynik koncowy:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
                     "Indeksowany wynik koncowy:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;            
                     exit 1
                     )

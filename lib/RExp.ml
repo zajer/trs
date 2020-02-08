@@ -18,9 +18,9 @@ let transistions_to_sll its =
                 fun res (t,ii,ri) -> 
                     let isi = string_of_int ii
                     and rsi = string_of_int ri
-                    and rl = t.TBrs.react_label
-                    and p = (Iso.to_string t.participants)
-                    and rf = (Fun.to_string t.residue)
+                    and rl = t.TBrs.rl
+                    and p = (Iso.to_string t.p)
+                    and rf = (Fun.to_string t.rf)
                     in
                         let new_row = [isi;rsi;rl;p;rf]
                         in

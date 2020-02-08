@@ -57,9 +57,9 @@ let s0 = Big.of_string s0_to_parse
 let lhs = Big.of_string r0_to_parse
 let rhs = Big.of_string r1_to_parse
 let f_rnm = Fun.empty |> Fun.add 0 0
-let react = TBrsOp.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None;;
+let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None;;
 
-let tl,ss,uss,ms = TBrsOp.parexplore_ss ~s0 ~rules:[react] ~max_steps:9;;
+let tl,ss,uss,ms = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:9;;
 
 let magic x par =
     let y = Big.of_string

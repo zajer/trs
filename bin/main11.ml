@@ -169,13 +169,13 @@ let mov_f_rnm = Fun.empty |> Fun.add 0 0 |> Fun.add 1 2 |> Fun.add 2 1
 let estConn2AF_f_rnm = Fun.empty |> Fun.add 0 0 |> Fun.add 1 1 |> Fun.add 2 2 |> Fun.add 3 3
 let estConn1AF_f_rnm = Fun.empty |> Fun.add 0 0 |> Fun.add 1 1 |> Fun.add 2 2
 
-let mov_react = TBrsOp.parse_react "move" ~lhs:mov_lhs ~rhs:mov_rhs ~f_sm:None ~f_rnm:mov_f_rnm
-let estConn1AF_react = TBrsOp.parse_react "estConn1AF" ~lhs:estConn1AF_lhs ~rhs:estConn1AF_rhs ~f_sm:None ~f_rnm:estConn1AF_f_rnm
-let estConn2AF_react = TBrsOp.parse_react "estConn2AF" ~lhs:estConn2AF_lhs ~rhs:estConn2AF_rhs ~f_sm:None ~f_rnm:estConn2AF_f_rnm
+let mov_react = TBrs.parse_react "move" ~lhs:mov_lhs ~rhs:mov_rhs ~f_sm:None ~f_rnm:mov_f_rnm
+let estConn1AF_react = TBrs.parse_react "estConn1AF" ~lhs:estConn1AF_lhs ~rhs:estConn1AF_rhs ~f_sm:None ~f_rnm:estConn1AF_f_rnm
+let estConn2AF_react = TBrs.parse_react "estConn2AF" ~lhs:estConn2AF_lhs ~rhs:estConn2AF_rhs ~f_sm:None ~f_rnm:estConn2AF_f_rnm
 let rules = [mov_react;estConn1AF_react;estConn2AF_react];;
 Parmap.set_default_ncores 4
 
-let tl,ss,uss,ms = TBrsOp.parexplore_ss ~s0 ~rules ~max_steps:300;;
+let tl,ss,uss,ms = TBrs.parexplore_ss ~s0 ~rules ~max_steps:300;;
 
 print_endline ("Liczba przejść:" ^ ( string_of_int (List.length tl) ) );
 print_endline ("Liczba stanów:" ^ ( string_of_int (List.length ss) ) );;

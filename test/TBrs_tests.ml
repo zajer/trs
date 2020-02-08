@@ -3,179 +3,180 @@ open OUnit2
 open Bigraph
 open Tracking_bigraph
 
-let test_norm_ss_1 _ =
-  let us1 = Big.of_string "{(0, A:0),(1, B:0),(2, C:0)}\n0 3 0\n010\n001\n000"
-  in
-    let is11 = Big.of_string "{(0, C:0),(1, A:0),(2, B:0)}\n0 3 0\n000\n001\n100"
-    and is12 = Big.of_string "{(0, C:0),(1, B:0),(2, A:0)}\n0 3 0\n000\n100\n010"
-    and is13 = Big.of_string "{(0, B:0),(1, C:0),(2, A:0)}\n0 3 0\n010\n000\n100"
+let test_parexplore_ss_1 _ =
+    let s0_to_parse ="{(0, A:0),(1, A:0),(2, B:0),(3, B:0)}\n0 4 0\n0010\n0001\n0000\n0000"
+    and r0_to_parse ="{(0, A:0),(1, A:0),(2, B:0)}\n1 3 2\n11000\n00110\n00001\n00000"
+    and r1_to_parse ="{(0, A:0),(1, A:0),(2, B:0)}\n1 3 2\n11000\n00010\n00101\n00000"
     in
-      let t_us1_is11_residue = Fun.empty |> Fun.add 0 2 |> Fun.add 1 0 |> Fun.add 2 1
-      and t_us1_is12_residue = Fun.empty |> Fun.add 0 2 |> Fun.add 1 1 |> Fun.add 2 0
-      and t_us1_is13_residue = Fun.empty |> Fun.add 0 1 |> Fun.add 1 2 |> Fun.add 2 0
-    in
-      let t111 = TBrs.parse_trans_unsafe ~init:us1 ~result:is11 Iso.empty t_us1_is11_residue ""
-      and t112 = TBrs.parse_trans_unsafe ~init:us1 ~result:is12 Iso.empty t_us1_is12_residue ""
-      and t113 = TBrs.parse_trans_unsafe ~init:us1 ~result:is13 Iso.empty t_us1_is13_residue ""
-      in
-        let rt = TBrs.norm_ss [t111;t112;t113] [us1]
-        and expected_residue = Fun.of_list [(0,0);(1,1);(2,2)]
+        let s0 = Big.of_string s0_to_parse
+        and lhs = Big.of_string r0_to_parse
+        and rhs = Big.of_string r1_to_parse
+        and f_rnm = Fun.empty |> Fun.add 0 0
         in
-          List.iter 
-          (fun (t:TBrs.trans) ->
-            let t_res_s = t.res_state
-            and t_res_f = t.residue
+            let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-              assert_equal us1 t_res_s;
-              assert_equal ~cmp:(fun r1 r2 -> Fun.equal r1 r2) expected_residue t_res_f
-          ) rt
-let test_norm_ss_2 _ =
-  let us1 = Big.of_string "{(0, A:0),(1, B:0),(2, C:0)}\n0 3 0\n010\n001\n000"
-  and us2 = Big.of_string "{(0, X:0),(1, Y:0),(2, Z:0)}\n0 3 0\n010\n001\n000"
-  in
-    let is11 = Big.of_string "{(0, C:0),(1, A:0),(2, B:0)}\n0 3 0\n000\n001\n100"
-    and is12 = Big.of_string "{(0, C:0),(1, B:0),(2, A:0)}\n0 3 0\n000\n100\n010"
-    and is21 = Big.of_string "{(0, Z:0),(1, X:0),(2, Y:0)}\n0 3 0\n000\n001\n100"
-    and is22 = Big.of_string "{(0, Z:0),(1, Y:0),(2, X:0)}\n0 3 0\n000\n100\n010"
+                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:10
+                in
+                    List.iteri
+                        (
+                            fun _ (t,ii,ri) -> 
+                                let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss) 
+                                and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
+                                in
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TBrs.is)
+                                    and  is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TBrs.rs)
+                                    in
+                                        assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
+                        ) 
+                        tl
+let test_parexplore_ss_2 _ =
+    let s0_to_parse ="{(0, A:0),(1, A:0),(2, B:0),(3, C:0)}\n0 4 0\n0010\n0001\n0000\n0000\n"
+    and r0_to_parse ="{(0, A:0)}\n1 1 1\n10\n01"
+    and r1_to_parse ="{(0, A:0),(1, X:0)}\n1 2 1\n100\n011\n000"
     in
-      let t_us1_is11_residue = Fun.empty |> Fun.add 0 2 |> Fun.add 1 0 |> Fun.add 2 1
-      and t_us1_is12_residue = Fun.empty |> Fun.add 0 2 |> Fun.add 1 1 |> Fun.add 2 0
-      and t_us2_is21_residue = Fun.empty |> Fun.add 0 2 |> Fun.add 1 0 |> Fun.add 2 1
-      and t_us2_is22_residue = Fun.empty |> Fun.add 0 2 |> Fun.add 1 1 |> Fun.add 2 0
-    in
-      let t111 = TBrs.parse_trans_unsafe ~init:us1 ~result:is11 Iso.empty t_us1_is11_residue ""
-      and t112 = TBrs.parse_trans_unsafe ~init:us1 ~result:is12 Iso.empty t_us1_is12_residue ""
-      and t221 = TBrs.parse_trans_unsafe ~init:us2 ~result:is21 Iso.empty t_us2_is21_residue ""
-      and t222 = TBrs.parse_trans_unsafe ~init:us2 ~result:is22 Iso.empty t_us2_is22_residue ""
-      in
-        let rt = TBrs.norm_ss [t111;t112;t221;t222] [us1;us2]
-        and expected_residue = Fun.of_list [(0,0);(1,1);(2,2)]
+        let s0 = Big.of_string s0_to_parse
+        and lhs = Big.of_string r0_to_parse
+        and rhs = Big.of_string r1_to_parse
+        and f_rnm = Fun.empty |> Fun.add 0 0
         in
-          List.iter 
-          (fun (t:TBrs.trans) ->
-            let t_res_s = t.res_state
-            and t_res_f = t.residue
+            let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-              assert_equal true (us1 = t_res_s || us2 = t_res_s);
-              assert_equal ~cmp:(fun r1 r2 -> Fun.equal r1 r2) expected_residue t_res_f
-          ) rt
-let test_norm_ss_3 _ =
-  let us1 = Big.of_string "{(0, A:0),(1, B:0),(2, C:0)}\n0 3 0\n010\n001\n000"
-  and us2 = Big.of_string "{(0, X:0),(1, Y:0),(2, Z:0),(3, W:0)}\n0 4 0\n0100\n0010\n0001\n0000"
-  in
-    let is21 = Big.of_string "{(0, W:0),(1, Z:0),(2, Y:0),(3, X:0)}\n0 4 0\n0000\n1000\n0100\n0010"
-    and is22 = Big.of_string "{(0, Z:0),(1, X:0),(2, W:0),(3, Y:0)}\n0 4 0\n0010\n0001\n0000\n1000"
+                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:3
+                in
+                    List.iteri
+                        (
+                            fun i (t,ii,ri) -> 
+                                let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss)
+                                and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
+                                in
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TBrs.is)
+                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TBrs.rs)
+                                    in
+                                        if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
+                                        (
+                                        "Wynik "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
+                                        "Wyniki składowe, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
+                                        "Faktyczny wynik poczatkowy:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
+                                        "Indeksowany wynik poczatkowy:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
+                                        "Faktyczny wynik koncowy:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
+                                        "Indeksowany wynik koncowy:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;            
+                                        );
+                                        assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
+                        ) 
+                        tl
+let test_parexplore_ss_3 _ =
+    let s0_to_parse ="{(0, A:0),(1, A:0),(2, B:0),(3, C:0)}\n0 4 0\n0010\n0001\n0000\n0000\n"
+    and r0_to_parse ="{(0, A:0)}\n1 1 1\n10\n01"
+    and r1_to_parse ="{(0, A:0),(1, X:0)}\n1 2 1\n100\n011\n000"
     in
-      let t_us1_is21_residue = Fun.empty |> Fun.add 3 0 |> Fun.add 2 0 |> Fun.add 0 1
-      and t_us1_is22_residue = Fun.empty |> Fun.add 1 0 |> Fun.add 3 0 |> Fun.add 2 1
-    in
-      let t121 = TBrs.parse_trans_unsafe ~init:us1 ~result:is21 Iso.empty t_us1_is21_residue ""
-      and t122 = TBrs.parse_trans_unsafe ~init:us1 ~result:is22 Iso.empty t_us1_is22_residue ""
-      in
-        let _ = Parmap.set_default_ncores 2
-        and rt = TBrs.parnorm_ss [t121;t122] [us1;us2]
-        and expected_residue = Fun.of_list [(0,0);(1,0);(3,1)]
+        let s0 = Big.of_string s0_to_parse
+        and lhs = Big.of_string r0_to_parse
+        and rhs = Big.of_string r1_to_parse
+        and f_rnm = Fun.empty |> Fun.add 0 0
         in
-          List.iter 
-          (fun (t:TBrs.trans) ->
-            let t_res_s = t.res_state
-            and t_res_f = t.residue
+            let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-              assert_equal us2 t_res_s;
-              assert_equal ~cmp:(fun r1 r2 -> Fun.equal r1 r2) expected_residue t_res_f
-          ) rt
-let test_parnorm_ss_1 _ =
-  let us1 = Big.of_string "{(0, A:0),(1, B:0),(2, C:0)}\n0 3 0\n010\n001\n000"
-  in
-    let is11 = Big.of_string "{(0, C:0),(1, A:0),(2, B:0)}\n0 3 0\n000\n001\n100"
-    and is12 = Big.of_string "{(0, C:0),(1, B:0),(2, A:0)}\n0 3 0\n000\n100\n010"
-    and is13 = Big.of_string "{(0, B:0),(1, C:0),(2, A:0)}\n0 3 0\n010\n000\n100"
+                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:5
+                in
+                    List.iteri
+                        (
+                            fun i (t,ii,ri) -> 
+                                let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss)
+                                and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
+                                in
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TBrs.is)
+                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TBrs.rs)
+                                    in
+                                        if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
+                                        (
+                                        "Wynik "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
+                                        "Wyniki składowe, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
+                                        "Faktyczny wynik poczatkowy:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
+                                        "Indeksowany wynik poczatkowy:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
+                                        "Faktyczny wynik koncowy:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
+                                        "Indeksowany wynik koncowy:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;            
+                                        );
+                                        assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
+                        ) 
+                        tl
+let test_parexplore_ss_4 _ =
+    let s0_to_parse ="{(0, A:0),(1, A:0),(2, B:0),(3, C:0)}\n0 4 0\n0010\n0001\n0000\n0000\n"
+    and r0_to_parse ="{(0, A:0)}\n1 1 1\n10\n01"
+    and r1_to_parse ="{(0, A:0),(1, X:0)}\n1 2 1\n100\n011\n000"
     in
-      let t_us1_is11_residue = Fun.empty |> Fun.add 0 2 |> Fun.add 1 0 |> Fun.add 2 1
-      and t_us1_is12_residue = Fun.empty |> Fun.add 0 2 |> Fun.add 1 1 |> Fun.add 2 0
-      and t_us1_is13_residue = Fun.empty |> Fun.add 0 1 |> Fun.add 1 2 |> Fun.add 2 0
-    in
-      let t111 = TBrs.parse_trans_unsafe ~init:us1 ~result:is11 Iso.empty t_us1_is11_residue ""
-      and t112 = TBrs.parse_trans_unsafe ~init:us1 ~result:is12 Iso.empty t_us1_is12_residue ""
-      and t113 = TBrs.parse_trans_unsafe ~init:us1 ~result:is13 Iso.empty t_us1_is13_residue ""
-      in
-        let _ = Parmap.set_default_ncores 2
-        and rt = TBrs.parnorm_ss [t111;t112;t113] [us1]
-        and expected_residue = Fun.of_list [(0,0);(1,1);(2,2)]
+        let s0 = Big.of_string s0_to_parse
+        and lhs = Big.of_string r0_to_parse
+        and rhs = Big.of_string r1_to_parse
+        and f_rnm = Fun.empty |> Fun.add 0 0
         in
-          List.iter 
-          (fun (t:TBrs.trans) ->
-            let t_res_s = t.res_state
-            and t_res_f = t.residue
+            let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-              assert_equal us1 t_res_s;
-              assert_equal ~cmp:(fun r1 r2 -> Fun.equal r1 r2) expected_residue t_res_f
-          ) rt
-let test_parnorm_ss_2 _ =
-  let us1 = Big.of_string "{(0, A:0),(1, B:0),(2, C:0)}\n0 3 0\n010\n001\n000"
-  and us2 = Big.of_string "{(0, X:0),(1, Y:0),(2, Z:0)}\n0 3 0\n010\n001\n000"
-  in
-    let is11 = Big.of_string "{(0, C:0),(1, A:0),(2, B:0)}\n0 3 0\n000\n001\n100"
-    and is12 = Big.of_string "{(0, C:0),(1, B:0),(2, A:0)}\n0 3 0\n000\n100\n010"
-    and is21 = Big.of_string "{(0, Z:0),(1, X:0),(2, Y:0)}\n0 3 0\n000\n001\n100"
-    and is22 = Big.of_string "{(0, Z:0),(1, Y:0),(2, X:0)}\n0 3 0\n000\n100\n010"
+                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:9
+                in
+                    List.iteri
+                        (
+                            fun i (t,ii,ri) -> 
+                                let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss)
+                                and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
+                                in
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TBrs.is)
+                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TBrs.rs)
+                                    in
+                                        if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
+                                        (
+                                        "Wynik "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
+                                        "Wyniki składowe, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
+                                        "Faktyczny wynik poczatkowy:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
+                                        "Indeksowany wynik poczatkowy:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
+                                        "Faktyczny wynik koncowy:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
+                                        "Indeksowany wynik koncowy:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;            
+                                        );
+                                        assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
+                        ) 
+                        tl
+let test_parexplore_ss_5 _ =
+    let s0_to_parse ="{(0, A:0),(1, A:0),(2, B:0),(3, C:0)}\n0 4 0\n0010\n0001\n0000\n0000\n"
+    and r0_to_parse ="{(0, A:0)}\n1 1 1\n10\n01"
+    and r1_to_parse ="{(0, A:0),(1, X:0)}\n1 2 1\n100\n011\n000"
     in
-      let t_us1_is11_residue = Fun.empty |> Fun.add 0 2 |> Fun.add 1 0 |> Fun.add 2 1
-      and t_us1_is12_residue = Fun.empty |> Fun.add 0 2 |> Fun.add 1 1 |> Fun.add 2 0
-      and t_us2_is21_residue = Fun.empty |> Fun.add 0 2 |> Fun.add 1 0 |> Fun.add 2 1
-      and t_us2_is22_residue = Fun.empty |> Fun.add 0 2 |> Fun.add 1 1 |> Fun.add 2 0
-    in
-      let t111 = TBrs.parse_trans_unsafe ~init:us1 ~result:is11 Iso.empty t_us1_is11_residue ""
-      and t112 = TBrs.parse_trans_unsafe ~init:us1 ~result:is12 Iso.empty t_us1_is12_residue ""
-      and t221 = TBrs.parse_trans_unsafe ~init:us2 ~result:is21 Iso.empty t_us2_is21_residue ""
-      and t222 = TBrs.parse_trans_unsafe ~init:us2 ~result:is22 Iso.empty t_us2_is22_residue ""
-      in
-        let _ = Parmap.set_default_ncores 2
-        and rt = TBrs.norm_ss [t111;t112;t221;t222] [us1;us2]
-        and expected_residue = Fun.of_list [(0,0);(1,1);(2,2)]
+        let s0 = Big.of_string s0_to_parse
+        and lhs = Big.of_string r0_to_parse
+        and rhs = Big.of_string r1_to_parse
+        and f_rnm = Fun.empty |> Fun.add 0 0
         in
-          List.iter 
-          (fun (t:TBrs.trans) ->
-            let t_res_s = t.res_state
-            and t_res_f = t.residue
+            let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-              assert_equal true (us1 = t_res_s || us2 = t_res_s);
-              assert_equal ~cmp:(fun r1 r2 -> Fun.equal r1 r2) expected_residue t_res_f
-          ) rt
-let test_parnorm_ss_3 _ =
-  let us1 = Big.of_string "{(0, A:0),(1, B:0),(2, C:0)}\n0 3 0\n010\n001\n000"
-  and us2 = Big.of_string "{(0, X:0),(1, Y:0),(2, Z:0),(3, W:0)}\n0 4 0\n0100\n0010\n0001\n0000"
-  in
-    let is21 = Big.of_string "{(0, W:0),(1, Z:0),(2, Y:0),(3, X:0)}\n0 4 0\n0000\n1000\n0100\n0010"
-    and is22 = Big.of_string "{(0, Z:0),(1, X:0),(2, W:0),(3, Y:0)}\n0 4 0\n0010\n0001\n0000\n1000"
-    in
-      let t_us1_is21_residue = Fun.empty |> Fun.add 3 0 |> Fun.add 2 0 |> Fun.add 0 1
-      and t_us1_is22_residue = Fun.empty |> Fun.add 1 0 |> Fun.add 3 0 |> Fun.add 2 1
-    in
-      let t121 = TBrs.parse_trans_unsafe ~init:us1 ~result:is21 Iso.empty t_us1_is21_residue ""
-      and t122 = TBrs.parse_trans_unsafe ~init:us1 ~result:is22 Iso.empty t_us1_is22_residue ""
-      in
-        let rt = TBrs.norm_ss [t121;t122] [us1;us2]
-        and expected_residue = Fun.of_list [(0,0);(1,0);(3,1)]
-        in
-          List.iter 
-          (fun (t:TBrs.trans) ->
-            let t_res_s = t.res_state
-            and t_res_f = t.residue
-            in
-              assert_equal us2 t_res_s;
-              assert_equal ~cmp:(fun r1 r2 -> Fun.equal r1 r2) expected_residue t_res_f
-          ) rt
-
+                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:15
+                in
+                    List.iteri
+                        (
+                            fun i (t,ii,ri) -> 
+                                let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss)
+                                and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
+                                in
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TBrs.is)
+                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TBrs.rs)
+                                    in
+                                        if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
+                                        (
+                                        "Wynik "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
+                                        "Wyniki składowe, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
+                                        "Faktyczny wynik poczatkowy:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
+                                        "Indeksowany wynik poczatkowy:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
+                                        "Faktyczny wynik koncowy:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
+                                        "Indeksowany wynik koncowy:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;            
+                                        );
+                                        assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
+                        ) 
+                        tl
 
 let suite =
-  "TBrs tests" >::: [
-    "Norm ss 1">:: test_norm_ss_1;
-    "Norm ss 2">:: test_norm_ss_2;
-    "Norm ss 3">:: test_norm_ss_3;
-    "Parnorm ss 1">:: test_parnorm_ss_1;
-    "Parnorm ss 2">:: test_parnorm_ss_2;
-    "Parnorm ss 3">:: test_parnorm_ss_3;
+  "TBrsOp tests" >::: [
+    "Explore ss 1">:: test_parexplore_ss_1;
+    "Explore ss 2">:: test_parexplore_ss_2;
+    "Explore ss 3">:: test_parexplore_ss_3;
+    "Explore ss 4">:: test_parexplore_ss_4;
+    "Explore ss 5">:: test_parexplore_ss_5;
 ]
 
 let () =

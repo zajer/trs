@@ -4,7 +4,6 @@
         TBig_tests
         Utils_tests
         TBrs_tests
-        TBrsOp_tests
     ) 
     (libraries tracking_bigraph oUnit )
 )
