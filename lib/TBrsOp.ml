@@ -186,6 +186,30 @@ let rec filter_and_reindex_duplicates ~reindex_of:(rof:(Big.t * int) list ) ~rei
                     rest_unique,(rfr_idx,rof_idx)::rest_isos
                 else
                     rest_unique,rest_isos
+let parfilter_and_reindex_duplicates ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
+    let tmp = Parmap.L rfr
+    in
+        Parmap.parmapfold
+        (
+            fun (rfr_b,rfr_idx) ->
+                let (_ ,rof_idx), _,found = find_iso_indexed_big rfr_b rof
+                in
+                    if found then
+                        [],[rfr_idx,rof_idx]
+                    else
+                        [rfr_b,rfr_idx],[]
+        )
+        tmp
+        (
+            fun (filtered,iso) (res_filtered,res_iso) ->
+                filtered@res_filtered,iso@res_iso
+        )
+        ([],[])
+        (
+            fun (res_filtered_part1,res_iso_part1) (res_filtered_part2,res_iso_part2)->
+                res_filtered_part1@res_filtered_part2,res_iso_part1@res_iso_part2
+        )
+
 (*
     Założenie: indeksacja ci jest od 0 do n-1 (ci to liczba elementow juz indeksowanych)
 *)
