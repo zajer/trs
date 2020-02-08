@@ -180,8 +180,6 @@ let tl,ss,uss,ms = TBrsOp.parexplore_ss ~s0 ~rules ~max_steps:300;;
 print_endline ("Liczba przejść:" ^ ( string_of_int (List.length tl) ) );
 print_endline ("Liczba stanów:" ^ ( string_of_int (List.length ss) ) );;
 
-
-
 List.iteri
     (
         fun i (t,ii,ri) -> 
@@ -204,36 +202,26 @@ List.iteri
     ) 
     tl;;
 
-print_endline "wszystkie wyniki są indeksowane poprawnie."
+print_endline "wszystkie wyniki są indeksowane poprawnie." ;;
 
-(*
-List.iteri 
-    (
-        fun i (_,idx) -> 
-            print_endline ("Stan:"^(string_of_int i));
-            (*print_endline ((Big.to_string b)^"\n");*)
-            print_endline ("Indeks:"^(string_of_int idx));
-    ) 
-    ss;
-*)
-
-(*
-List.iteri 
-    (
-        fun i b1 -> 
-            List.iteri 
+let rec check_equals_among_results uss = 
+    match uss with
+    | [] -> ();
+    | (us,idx)::rouss -> 
+        List.iter 
             (
-                fun j b2 -> 
-                    if i <> j && Big.equal b1 b2 then
+                fun (cs,cidx) -> 
+                    if Big.equal us cs then  
                     (
-                        print_endline ("Dwugrafy: i="^(string_of_int i)^" j="^(string_of_int j)^" są izomorficzne");
-                        if Big.key b1 = Big.key b2 then 
-                            print_endline ("Dwugrafy: i="^(string_of_int i)^" j="^(string_of_int j)^" maja identyczne hashe");
+                        print_endline ("Wyniki o indeksach idx="^(string_of_int idx)^" cidx="^(string_of_int cidx)^" są izomorficzne!");
+                        exit 1
                     )
                     else
                         ()
-            ) 
-            ss;     
-    ) 
-    ss;
-    *)
+            )
+            rouss;
+            check_equals_among_results rouss;;
+
+check_equals_among_results (ss@uss);;
+
+print_endline "nie ma wyników izomorficznych wewnątrz ss ani uss"
