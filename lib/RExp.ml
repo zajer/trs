@@ -6,12 +6,12 @@ let init_state_index_header = "init state idx"
 let res_state_index_header = "res state idx"
 let participant_header = "init state 2 react_lhs iso"
 let residue_header = "residue of init in res state"
-
+let res_state = "res state actual representation"
 let timestamp_string () =
     string_of_float (Unix.time ())
 
 let transistions_to_sll its = 
-    let trans_header = [init_state_index_header;res_state_index_header;react_label_header;participant_header;residue_header]
+    let trans_header = [init_state_index_header;res_state_index_header;react_label_header;participant_header;residue_header;res_state]
     in
         let trans_rest = List.fold_left 
             (
@@ -21,8 +21,9 @@ let transistions_to_sll its =
                     and rl = t.TBrs.rl
                     and p = (Iso.to_string t.p)
                     and rf = (Fun.to_string t.rf)
+                    and rs = (Big.to_string t.rs)
                     in
-                        let new_row = [isi;rsi;rl;p;rf]
+                        let new_row = [isi;rsi;rl;p;rf;rs]
                         in
                             [new_row]@res
             ) 
@@ -55,4 +56,4 @@ let export_ss_csv its ius =
     in
         Csv.save ("transitions_"^(timestamp)^".csv") transitions;
         Csv.save ("states_"^(timestamp)^".csv") states
-
+        
