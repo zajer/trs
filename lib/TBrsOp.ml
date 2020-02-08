@@ -186,6 +186,8 @@ let rec filter_and_reindex_duplicates ~reindex_of:(rof:(Big.t * int) list ) ~rei
                     rest_unique,(rfr_idx,rof_idx)::rest_isos
                 else
                     rest_unique,rest_isos
+(* Wydajność parfilter... jet gorsza od filter... jest gorsza *)
+(*
 let parfilter_and_reindex_duplicates ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
     let tmp = Parmap.L rfr
     in
@@ -209,6 +211,7 @@ let parfilter_and_reindex_duplicates ~reindex_of:(rof:(Big.t * int) list ) ~rein
             fun (res_filtered_part1,res_iso_part1) (res_filtered_part2,res_iso_part2)->
                 res_filtered_part1@res_filtered_part2,res_iso_part1@res_iso_part2
         )
+*)
 
 (*
     Założenie: indeksacja ci jest od 0 do n-1 (ci to liczba elementow juz indeksowanych)
