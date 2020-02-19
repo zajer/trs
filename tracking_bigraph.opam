@@ -1,0 +1,19 @@
+opam-version: "2.0"
+name: "tracking_bigraph"
+version: "0.2"
+synopsis: "Tracking Reactive System"
+description: """
+Tracking_bigraph is an extension of the OCaml library \"bigraph\" made by Michele Sevegnani.
+It allows designing and evaluating bigraphical reactive systems with nodes tracking.
+Additionally it allows for export of calculated state space to a file.
+It also tries to parallelize some of computations.
+"""
+maintainer: "Piotr Cybulski <pikus3@list.pl>"
+authors: "Piotr Cybulski <pikus3@list.pl>"
+license: "BSD-2-Clause"
+homepage: "https://github.com/zajer/trs"
+bug-reports: "https://github.com/zajer/trs/issues"
+depends: [ "ocaml" "dune" "bigraph" "parmap" "csv"]
+build: [
+    ["dune" "build" "-p" name "-j" jobs]
+]
