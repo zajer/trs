@@ -1,0 +1,16 @@
+opam-version: "2.0"
+name: "tracking_bigraph"
+version: "0.1"
+synopsis: "Tracking Reactive System"
+description: """
+Longer description
+"""
+maintainer: "Piotr Cybulski <pikus3@list.pl>"
+authors: "Piotr Cybulski <pikus3@list.pl>"
+license: "BSD-2-Clause"
+homepage: "https://github.com/zajer/trs"
+bug-reports: "https://github.com/zajer/trs/issues"
+depends: [ "ocaml" "ocamlfind" "bigraph" "parmap" "csv"]
+build: [
+    ["dune" "build" "-p" name "-j" jobs]
+]
