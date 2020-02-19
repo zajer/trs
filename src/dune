@@ -1,6 +1,7 @@
 
 (library
   (name tracking_bigraph)
+  (public_name tracking_bigraph)
   (libraries bigraph parmap csv )		   ; Nazwy bibliotek używanych w projekcie oddzielone spacją. Nazwa biblioteki taka jaką podajesz w 'opam install nazwa_biblioteki'
 )
 
