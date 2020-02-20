@@ -58,18 +58,18 @@ let translate_trans ~(output_res_state:Big.t) ~(translated:t) =
 let split_into_iso_trans (patt:Big.t) (rest:t list) =
     let patt_key = Big.key patt
     in
-        List.fold_right 
+        List.fold_left 
             (
-                fun t (res_eq,res_neq) -> 
+                fun  (res_eq,res_neq) t-> 
                     if Big.key t.rs = patt_key && Big.equal t.rs patt then
                             t::res_eq,res_neq
                     else
                         res_eq,t::res_neq
             )
-            rest
             ([],[])
+            rest
 let translate_all ors ttl =
-    List.fold_right (fun t res -> translate_trans ~translated:t ~output_res_state:ors::res) ttl []
+    List.fold_left (fun res t -> translate_trans ~translated:t ~output_res_state:ors::res) [] ttl
 let translate_all_iso_trans (patt:Big.t) (all:t list) =
     let eq,neq = split_into_iso_trans patt all    
     in
@@ -109,6 +109,7 @@ let step_grouped_iso_res b lr =
     Zwraca izomorficzny do wzorca dwugraf z loib wraz indeksem do niego przypisanym oraz informację czy jakikolwiek izomorficzny dwugraf został znaleziony.
     Jeżeli nie znaleziono izomorficznego dwugrafu to jako dwugraf zwracana jest tożsamość eps i indeks -1.
 *)
+
 let find_iso_indexed_big (patt:Big.t) (loib:(Big.t*int) list) =
     let patt_key = Big.key patt
     in
@@ -122,12 +123,82 @@ let find_iso_indexed_big (patt:Big.t) (loib:(Big.t*int) list) =
             )
             ( (Big.id_eps,-1) ,[],false)
             loib
+
+(*let parfind_iso_indexed_big (patt:Big.t) (loib:(Big.t*int) list) =
+    let patt_key = Big.key patt
+    and loib_converted = Parmap.L loib
+    in
+        let eq,neq = Parmap.parmapfold 
+            (fun (b,idx)-> (b,idx,(Big.key b)))
+            loib_converted
+            (
+                fun (b,idx,bk) res ->
+                    match res with
+                    | [],res_neq -> if (bk = patt_key) && (Big.equal patt b ) then 
+                                        [b,idx],res_neq
+                                    else
+                                        [],(b,idx)::res_neq
+                    | res_eq,res_neq -> res_eq,(b,idx)::res_neq
+            )
+            ([],[])
+            (
+                fun (eq1,neq1) (eq2,neq2) ->
+                    match eq1,eq2 with 
+                    | [] , [] -> [],neq1@neq2
+                    | eq , [] -> eq,neq1@neq2
+                    | [] , eq -> eq,neq1@neq2
+                    | _, _ -> raise (Invalid_argument "bigraphs not properly indexed!")
+            )
+        in
+            match eq with
+            | [] -> (Big.id_eps,-1),neq,false
+            | _ -> (List.hd eq),neq,true
+*)            
+
+(* reindex_from contains less elements than reindex_of  *)
+let filter_and_reindex_duplicates_case1 ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
+    List.fold_left 
+    (
+        fun (rest_unique,rest_isos) (b_rfr,rfr_idx) -> 
+            let (_ ,rof_idx), _,is_found = find_iso_indexed_big b_rfr rof
+            in
+                if is_found then
+                    rest_unique,(rfr_idx,rof_idx)::rest_isos
+                else
+                    (b_rfr,rfr_idx)::rest_unique,rest_isos
+    )
+    ([],[])
+    rfr
+(* reindex_of contains less elements than reindex_from  *)
+let filter_and_reindex_duplicates_case2 ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
+    let isos, unique = List.fold_left 
+    (
+        fun (rest_isos,rest_from) (b_rof,rof_idx) -> 
+            let (_ ,rfr_idx), rest_from',is_found = find_iso_indexed_big b_rof rest_from
+            in
+                if is_found then
+                    (rfr_idx,rof_idx)::rest_isos,rest_from'
+                else
+                    rest_isos,rest_from
+    )
+    ([],rfr)
+    rof
+    in
+        unique,isos
+let filter_and_reindex_duplicatesV2 ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
+    let rfr_count = List.length rfr
+    and rof_count = List.length rof
+    in
+        if rfr_count >= rof_count then filter_and_reindex_duplicates_case2 ~reindex_of:rof ~reindex_from:rfr
+        else filter_and_reindex_duplicates_case1 ~reindex_of:rof ~reindex_from:rfr
+     
 (* 
     Zwraca wszystkie pary (Big.t * int) z reindex_from, które nie występują w reindex_of. 
     Dodatkowo zwraca izomorfizm indeksów z rfr na rof dla elementów rfr, które występują w rof.
     Założenia 1: rof i rfr są pogrupowane tzn. nie ma dwóch izomorficznych dwugrafów na żadnej liście, które miałyby różne indeksy.
     Uproszczając: na żadnej liście nie ma dwóch izomorficznych do siebie dwugrafów.
 *)
+(*
 let rec filter_and_reindex_duplicates ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
     match rof with
         | [] -> rfr, []
@@ -140,6 +211,7 @@ let rec filter_and_reindex_duplicates ~reindex_of:(rof:(Big.t * int) list ) ~rei
                     rest_unique,(rfr_idx,rof_idx)::rest_isos
                 else
                     rest_unique,rest_isos
+*)
 (* Wydajność parfilter... jet gorsza od filter... jest gorsza *)
 (*
 let parfilter_and_reindex_duplicates ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
@@ -245,36 +317,19 @@ let _gen_trans_and_unique_states
     in
         let indexed_res_states, initially_indexed_transitions = initial_indexing res_su ~init_state_idx:ms_idx  ~checked_unchecked_sum:c_uc_sum
         in
-            let filtered_of_checked,iso_checked = filter_and_reindex_duplicates ~reindex_of:checked ~reindex_from:indexed_res_states 
+            let filtered_of_checked,iso_checked = filter_and_reindex_duplicatesV2 ~reindex_of:checked ~reindex_from:indexed_res_states 
             in
                 let trans_reindexed_by_checked,trans_unique_p1 = apply_reindexing_exclude_rest initially_indexed_transitions iso_checked
-                and filtered_of_unchecked,iso_unchecked = filter_and_reindex_duplicates ~reindex_of:unchecked ~reindex_from:filtered_of_checked
+                and filtered_of_unchecked,iso_unchecked = filter_and_reindex_duplicatesV2 ~reindex_of:unchecked ~reindex_from:filtered_of_checked
                 in
                     let trans_reindexed_by_unchecked,trans_unique_p2 = apply_reindexing_exclude_rest trans_unique_p1 iso_unchecked
-                    and filtered_of_results, iso_results = filter_and_reindex_duplicates ~reindex_of:new_unchecked_states ~reindex_from:filtered_of_unchecked
+                    and filtered_of_results, iso_results = filter_and_reindex_duplicatesV2 ~reindex_of:new_unchecked_states ~reindex_from:filtered_of_unchecked
                     in
                         let trans_reindexed_by_results,trans_unique_p3 = apply_reindexing_exclude_rest trans_unique_p2 iso_results
                         and my_new_unchecked_states_reindexed,iso_reindexing = regen_indexing (c_uc_sum+new_unchecked_states_number) filtered_of_results
                         in
                             let my_trans = (apply_reindexing trans_unique_p3 iso_reindexing)@trans_reindexed_by_checked@trans_reindexed_by_unchecked@trans_reindexed_by_results
                             in
-                                (*let _ = print_endline ("swag.l = "^(string_of_int new_unchecked_states_number))
-                                and _ = print_endline "yolo"
-                                and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) my_new_unchecked_states_reindexed
-                                and _ = print_endline "swag"
-                                and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) new_unchecked_states
-                                and _ = print_endline "yolo@swag"
-                                and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) (my_new_unchecked_states_reindexed@new_unchecked_states)
-                                in*)
-                                (*
-                                let _ = magic my_trans "##current-my-trans-"
-                                and _ = magic2 my_new_unchecked_states_reindexed "##current-my-unique_s-"
-                                and _ = magic trans "##current-result-trans-"
-                                and _ = magic2 new_unchecked_states "##current-result-unique_s-"
-                                and _ = magic (my_trans@trans) "#current-my+result-trans"
-                                and _ = magic2 (my_new_unchecked_states_reindexed@new_unchecked_states) "#current-my+result-unique-"
-                                and _ = List.iter ( fun (i1,i2) -> "("^(string_of_int i1)^","^(string_of_int i2)^")" |> print_endline ) iso_results
-                                in*)
                                 my_trans@trans, 
                                 my_new_unchecked_states_reindexed@new_unchecked_states,
                                 ( (List.length my_new_unchecked_states_reindexed)+new_unchecked_states_number )
@@ -300,7 +355,7 @@ let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:(Big.t * in
         ([],[],0)
         (
             fun (trans_part1, new_unchecked_part1,new_unchecked_length_part1) (trans_part2, new_unchecked_part2,new_unchecked_length_part2) -> 
-                let filtered_part2,iso_part_2_to_1 = filter_and_reindex_duplicates ~reindex_of:new_unchecked_part1 ~reindex_from:new_unchecked_part2
+                let filtered_part2,iso_part_2_to_1 = filter_and_reindex_duplicatesV2 ~reindex_of:new_unchecked_part1 ~reindex_from:new_unchecked_part2
                 and new_length = new_unchecked_length_part1 + new_unchecked_length_part2
                 in
                     let trans_part2_reindexed_by_part1,trans_part2_unique = apply_reindexing_exclude_rest trans_part2 iso_part_2_to_1
@@ -308,38 +363,6 @@ let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:(Big.t * in
                     in
                         let trans_part2_reindexed_by_shift = apply_reindexing trans_part2_unique iso_part2_reindex
                         in
-                            (*
-                            let _ = magic2 new_unchecked_part1 "nup1-"
-                            and _ = print_endline "nup1:"
-                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) new_unchecked_part1
-                            and _ = magic2 new_unchecked_part2 "nup2-"
-                            and _ = print_endline "nup2:"
-                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) new_unchecked_part2
-                            and _ = print_endline "filtered part 2:"
-                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) filtered_part2
-                            and _ = print_endline "iso shift:"
-                            and _ = List.iter (fun (i1,i2)-> print_endline ("("^(string_of_int i1)^","^(string_of_int i2)^")") ) iso_part2_reindex
-                            and _ = magic2 new_unchecked_part2_reindexed "nup2-shifted-"
-                            and _ = print_endline "nup1@nup2-shifted"
-                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) (new_unchecked_part1@new_unchecked_part2_reindexed)
-                            in
-                            *)
-                            (*
-                            let _ = magic trans_part1 "tp1-"
-                            and _ = magic trans_part2 "tp2-"
-                            and _ = magic trans_part2_reindexed_by_part1 "tp2rp1-"
-                            and _ = magic trans_part2_reindexed_by_shift "tp2rsh-"
-                            in
-                            *)
-                            (*let _ = print_endline "nup1"
-                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) new_unchecked_part1
-                            and _ = print_endline "nup2"
-                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) new_unchecked_part2
-                            and _ = print_endline "nup2-shifted"
-                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) new_unchecked_part2_reindexed
-                            and _ = print_endline "nup1@nup2-shifted"
-                            and _ = List.iter (fun (_,i) -> "(x,"^(string_of_int i)^") " |> print_endline ) (new_unchecked_part1@new_unchecked_part2_reindexed)
-                            in*)
                             trans_part1@trans_part2_reindexed_by_part1@trans_part2_reindexed_by_shift,new_unchecked_part1@new_unchecked_part2_reindexed,new_length
         )
 let rec _parexplore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:(Big.t*int) list) ~unchecked =
@@ -359,10 +382,7 @@ let parexplore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     and current_step = 0 
     and unchecked = [s0,0]
     in
-        let x,y,z,w = _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked
-        in
-            (*let _ = magic x "omg omg omg-"
-            in*)
-            x,y,z,w
+        _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked
+        
         
 

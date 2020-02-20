@@ -174,7 +174,7 @@ Parmap.set_default_ncores 4
 
 let tl,ss,uss,ms = TBrs.parexplore_ss ~s0 ~rules ~max_steps:300;;
 
-print_endline ("Liczba przejść:" ^ ( string_of_int (List.length tl) ) );
-print_endline ("Liczba stanów:" ^ ( string_of_int (List.length ss) ) );;
+print_endline ("Number of transitions:" ^ ( string_of_int (List.length tl) ) );
+print_endline ("Number of unique states:" ^ ( string_of_int (List.length ss) ) );;
 
-(*RExp.export_ss_csv tl (ss@uss)*)
+RExp.export_ss_csv tl (ss@uss)
