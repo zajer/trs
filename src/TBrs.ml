@@ -105,9 +105,9 @@ let step_grouped_iso_res b lr =
             in
                 grouped_result
 (*
-    Przyjmuje wzorzec i pogrupowaną indeksowaną listę dwugrafów (loib).
-    Zwraca izomorficzny do wzorca dwugraf z loib wraz indeksem do niego przypisanym oraz informację czy jakikolwiek izomorficzny dwugraf został znaleziony.
-    Jeżeli nie znaleziono izomorficznego dwugrafu to jako dwugraf zwracana jest tożsamość eps i indeks -1.
+    Takes a pattern and a list of indexed bigraphs.
+    Returns a bigraph isomorphic to the pattern with index associated to it and information about whether any bigraph has been found.
+    In case of not finding isomorphic bigraph function returns Big.id_eps paired with -1.
 *)
 
 let find_iso_indexed_big (patt:Big.t) (loib:(Big.t*int) list) =
@@ -193,10 +193,9 @@ let filter_and_reindex_duplicatesV2 ~reindex_of:(rof:(Big.t * int) list ) ~reind
         else filter_and_reindex_duplicates_case1 ~reindex_of:rof ~reindex_from:rfr
      
 (* 
-    Zwraca wszystkie pary (Big.t * int) z reindex_from, które nie występują w reindex_of. 
-    Dodatkowo zwraca izomorfizm indeksów z rfr na rof dla elementów rfr, które występują w rof.
-    Założenia 1: rof i rfr są pogrupowane tzn. nie ma dwóch izomorficznych dwugrafów na żadnej liście, które miałyby różne indeksy.
-    Uproszczając: na żadnej liście nie ma dwóch izomorficznych do siebie dwugrafów.
+    Returns all pairs (Big.t * int) from reindex_from which do not exist in reindex_of.
+    Additionaly, it returns list of isomorphisms of indexes from rfr to rof for each element of rfr that exists (is isomorphic to any of the elements) in rof.
+    Assumption: rof and rfr are grouped by which means there are no pairs of bigraphs that are isomorphic to each other.
 *)
 (*
 let rec filter_and_reindex_duplicates ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
