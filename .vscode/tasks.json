@@ -12,42 +12,28 @@
             "problemMatcher": []
         },
         {
-            "label": "run-exe",
+            "label": "dune-build-install",
             "type": "shell",
-            "command": "./_build/default/bin/main11.exe",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "command": "dune build @install",
+            "group": "build",
             "problemMatcher": []
-        },
-        {
-            "label": "run-bc",
-            "type": "shell",
-            "command": "./_build/default/bin/main.bc",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "debug",
-            "type": "shell",
-            "command": "ocamldebug ./_build/default/bin/main.bc",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
         },
         {
             "label": "run tests",
             "type": "shell",
             "command": "dune runtest",
             "group": {
-                "kind": "build",
+                "kind": "test",
                 "isDefault": true
             },
             "problemMatcher": []
-        }
+        },
+        {
+            "label": "dune-install",
+            "type": "shell",
+            "command": "dune install",
+            "group": "build",
+            "problemMatcher": []
+        },
     ]
 }

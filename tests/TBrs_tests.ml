@@ -54,12 +54,12 @@ let test_parexplore_ss_2 _ =
                                     in
                                         if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                                         (
-                                        "Wynik "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
-                                        "Wyniki składowe, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
-                                        "Faktyczny wynik poczatkowy:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
-                                        "Indeksowany wynik poczatkowy:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
-                                        "Faktyczny wynik koncowy:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
-                                        "Indeksowany wynik koncowy:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;            
+                                        "Result "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
+                                        "Result components, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
+                                        "Actual transition init state:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
+                                        "Indexed transition init state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
+                                        "Actual transition result state:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
+                                        "Indexed transition result state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;                 
                                         );
                                         assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
                         ) 
@@ -89,12 +89,12 @@ let test_parexplore_ss_3 _ =
                                     in
                                         if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                                         (
-                                        "Wynik "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
-                                        "Wyniki składowe, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
-                                        "Faktyczny wynik poczatkowy:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
-                                        "Indeksowany wynik poczatkowy:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
-                                        "Faktyczny wynik koncowy:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
-                                        "Indeksowany wynik koncowy:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;            
+                                        "Result "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
+                                        "Result components, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
+                                        "Actual transition init state:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
+                                        "Indexed transition init state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
+                                        "Actual transition result state:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
+                                        "Indexed transition result state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;                  
                                         );
                                         assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
                         ) 
@@ -124,12 +124,12 @@ let test_parexplore_ss_4 _ =
                                     in
                                         if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                                         (
-                                        "Wynik "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
-                                        "Wyniki składowe, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
-                                        "Faktyczny wynik poczatkowy:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
-                                        "Indeksowany wynik poczatkowy:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
-                                        "Faktyczny wynik koncowy:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
-                                        "Indeksowany wynik koncowy:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;            
+                                        "Result "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
+                                        "Result components, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
+                                        "Actual transition init state:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
+                                        "Indexed transition init state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
+                                        "Actual transition result state:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
+                                        "Indexed transition result state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;                    
                                         );
                                         assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
                         ) 
@@ -159,24 +159,24 @@ let test_parexplore_ss_5 _ =
                                     in
                                         if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                                         (
-                                        "Wynik "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
-                                        "Wyniki składowe, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
-                                        "Faktyczny wynik poczatkowy:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
-                                        "Indeksowany wynik poczatkowy:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
-                                        "Faktyczny wynik koncowy:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
-                                        "Indeksowany wynik koncowy:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;            
+                                        "Result "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
+                                        "Result components, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
+                                        "Actual transition init state:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
+                                        "Indexed transition init state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
+                                        "Actual transition result state:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
+                                        "Indexed transition result state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;            
                                         );
                                         assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
                         ) 
                         tl
 
 let suite =
-  "TBrsOp tests" >::: [
-    "Explore ss 1">:: test_parexplore_ss_1;
-    "Explore ss 2">:: test_parexplore_ss_2;
-    "Explore ss 3">:: test_parexplore_ss_3;
-    "Explore ss 4">:: test_parexplore_ss_4;
-    "Explore ss 5">:: test_parexplore_ss_5;
+  "TBrs tests" >::: [
+    "Parexplore ss 1">:: test_parexplore_ss_1;
+    "Parexplore ss 2">:: test_parexplore_ss_2;
+    "Parexplore ss 3">:: test_parexplore_ss_3;
+    "Parexplore ss 4">:: test_parexplore_ss_4;
+    "Parexplore ss 5">:: test_parexplore_ss_5;
 ]
 
 let () =

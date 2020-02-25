@@ -177,8 +177,8 @@ Parmap.set_default_ncores 4
 
 let tl,ss,uss,ms = TBrs.parexplore_ss ~s0 ~rules ~max_steps:300;;
 
-print_endline ("Liczba przejść:" ^ ( string_of_int (List.length tl) ) );
-print_endline ("Liczba stanów:" ^ ( string_of_int (List.length ss) ) );;
+print_endline ("Number of transitions:" ^ ( string_of_int (List.length tl) ) );
+print_endline ("Number of unique states:" ^ ( string_of_int (List.length ss) ) );;
 
 List.iteri
     (
@@ -191,18 +191,18 @@ List.iteri
                 in
                     if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                     (
-                    "Wynik "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
-                    "Wyniki składowe, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
-                    "Faktyczny wynik poczatkowy:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
-                    "Indeksowany wynik poczatkowy:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
-                    "Faktyczny wynik koncowy:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
-                    "Indeksowany wynik koncowy:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;            
+                     "Result "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
+                    "Result components, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
+                    "Actual transition init state:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
+                    "Indexed transition init state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
+                    "Actual transition result state:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
+                    "Indexed transition result state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;                 
                     exit 1
                     )
     ) 
     tl;;
 
-print_endline "wszystkie wyniki są indeksowane poprawnie." ;;
+print_endline "All results are indexed properly" ;;
 
 let rec check_equals_among_results uss = 
     match uss with
@@ -213,7 +213,7 @@ let rec check_equals_among_results uss =
                 fun (cs,cidx) -> 
                     if Big.equal us cs then  
                     (
-                        print_endline ("Wyniki o indeksach idx="^(string_of_int idx)^" cidx="^(string_of_int cidx)^" są izomorficzne!");
+                        print_endline ("Results indexed as idx1="^(string_of_int idx)^" idx2="^(string_of_int cidx)^" are isomorphic!");
                         exit 1
                     )
                     else
@@ -224,4 +224,4 @@ let rec check_equals_among_results uss =
 
 check_equals_among_results (ss@uss);;
 
-print_endline "nie ma wyników izomorficznych wewnątrz ss ani uss"
+print_endline "There are not isomorphic elements inside result lists"
