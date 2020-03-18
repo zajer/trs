@@ -5,5 +5,6 @@
         Utils_tests
         TBrs_tests
     ) 
-    (libraries tracking_bigraph oUnit )
+    (modes native)
+    (libraries tracking_bigraph ounit2 pyml )
 )
