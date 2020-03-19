@@ -3,10 +3,12 @@
 (version 0.3.2)
 (generate_opam_files true)
 
-(source (uri https://github.com/zajer/trs))
+(source (github zajer/trs))
 (license BSD-2-Clause)
 (authors "Piotr Cybulski <pikus3@list.pl>")
 (maintainers "Piotr Cybulski <pikus3@list.pl>")
+(homepage "https://github.com/zajer/trs")
+(bug_reports "https://github.com/zajer/trs/issues")
 
 (package
   (name tracking_bigraph)

@@ -1,5 +1,5 @@
 # Tracking_bigraph
-An addon to the OCaml library "Bigraph". Allows tracking nodes between state transitions.
+An addon to the OCaml library "Bigraph". It allows tracking of nodes between state transitions.
 
 ## Credits
 This is just an addon. 
