@@ -7,9 +7,9 @@
 
 (executable
   (name TBrs)
-  (libraries bigraph parmap csv landmarks unix)
+  (libraries bigraph parmap csv landmarks)
   (modes native )  
   (preprocess
-    (pps landmarks.ppx --thread)
+    (pps landmarks.ppx)
   )
 ) 
