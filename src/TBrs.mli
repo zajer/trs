@@ -11,3 +11,4 @@ val apply_trr : Big.t -> react -> t list
 val apply_trr_with_occ : Big.t -> react -> Big.occ -> t
 val parexplore_ss : s0:Big.t -> rules:react list -> max_steps:int -> (t*int*int) list* (Big.t*int) list*(Big.t*int) list*int
 
+val profile : unit -> unit

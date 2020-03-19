@@ -332,14 +332,15 @@ let _gen_trans_and_unique_states
                                 my_trans@trans, 
                                 my_new_unchecked_states_reindexed@new_unchecked_states,
                                 ( (List.length my_new_unchecked_states_reindexed)+new_unchecked_states_number )
-let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:(Big.t * int) list) ~unchecked =
+let[@landmark "pargen"] _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:(Big.t * int) list) ~unchecked =
     let converted_unchecked = Parmap.L unchecked
     and checked_unchecked_sum = List.length checked + List.length unchecked
     in
     Parmap.parfold
         (
             fun (ucs,i) (trans,new_unchecked_states,new_unchecked_states_number) ->
-                _gen_trans_and_unique_states 
+                Unix.sleep 1 ;
+                (_gen_trans_and_unique_states 
                     ~rules 
                     ~checked 
                     ~unchecked 
@@ -348,12 +349,14 @@ let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:(Big.t * in
                     ~my_state_idx:i 
                     ~trans 
                     ~new_unchecked_states 
-                    ~new_unchecked_states_number  
+                    ~new_unchecked_states_number
+                )[@landmark "gen"]
         )
         converted_unchecked
         ([],[],0)
         (
             fun (trans_part1, new_unchecked_part1,new_unchecked_length_part1) (trans_part2, new_unchecked_part2,new_unchecked_length_part2) -> 
+                (
                 let filtered_part2,iso_part_2_to_1 = filter_and_reindex_duplicatesV2 ~reindex_of:new_unchecked_part1 ~reindex_from:new_unchecked_part2
                 and new_length = new_unchecked_length_part1 + new_unchecked_length_part2
                 in
@@ -363,6 +366,7 @@ let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:(Big.t * in
                         let trans_part2_reindexed_by_shift = apply_reindexing trans_part2_unique iso_part2_reindex
                         in
                             trans_part1@trans_part2_reindexed_by_part1@trans_part2_reindexed_by_shift,new_unchecked_part1@new_unchecked_part2_reindexed,new_length
+                )[@landmark "merging"]
         )
 let rec _parexplore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:(Big.t*int) list) ~unchecked =
         if current_step < max_steps then
@@ -376,12 +380,63 @@ let rec _parexplore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) 
                         res_trans@given_transitions,given_unique_states,given_unique_unchecked,last_reached_step 
         else
             [],checked,unchecked,current_step
-let parexplore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
+let[@landmark "parexplore"] parexplore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     let checked = []
     and current_step = 0 
     and unchecked = [s0,0]
     in
         _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked
-        
-        
+
+let readlines filename =
+    let lines = ref [] in
+    let chan = open_in filename in
+        try
+        while true; do
+            lines := input_line chan :: !lines
+        done; !lines
+        with End_of_file ->
+            close_in chan;
+            List.rev !lines ;;
+
+let profile () = 
+    let s0_to_parse = List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" (readlines "s0v2.txt") 
+    and move_lhs_to_parse = List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" (readlines "mov_lhs.txt") 
+    and move_rhs_to_parse = List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" (readlines "mov_rhs.txt") 
+    and estConn2AF_lhs_to_parse = List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" (readlines "estConn2AF_lhs.txt") 
+    and estConn2AF_rhs_to_parse = List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" (readlines "estConn2AF_rhs.txt") 
+    and estConn1AF_lhs_to_parse = List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" (readlines "estConn1AF_lhs.txt") 
+    and estConn1AF_rhs_to_parse = List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" (readlines "estConn1AF_rhs.txt")
+    and breConn_lhs_to_parse = List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" (readlines "breConn_lhs.txt")
+    and breConn_rhs_to_parse = List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" (readlines "breConn_rhs.txt")
+    in
+        let s0 = Big.of_string s0_to_parse
+        and mov_lhs = Big.of_string move_lhs_to_parse
+        and mov_rhs = Big.of_string move_rhs_to_parse
+        and estConn1AF_lhs = Big.of_string estConn1AF_lhs_to_parse
+        and estConn1AF_rhs = Big.of_string estConn1AF_rhs_to_parse
+        and estConn2AF_lhs = Big.of_string estConn2AF_lhs_to_parse
+        and estConn2AF_rhs = Big.of_string estConn2AF_rhs_to_parse
+        and breConn_lhs = Big.of_string breConn_lhs_to_parse
+        and breConn_rhs = Big.of_string breConn_rhs_to_parse
+        and mov_f_rnm = Fun.empty |> Fun.add 0 0 |> Fun.add 1 2 |> Fun.add 2 1
+        and estConn2AF_f_rnm = Fun.empty |> Fun.add 0 0 |> Fun.add 1 1 |> Fun.add 2 2 |> Fun.add 3 3
+        and estConn1AF_f_rnm = Fun.empty |> Fun.add 0 0 |> Fun.add 1 1 |> Fun.add 2 2
+        and breConn_f_rnm = Fun.empty |> Fun.add 0 0 |> Fun.add 1 1
+        in
+            let mov_react = parse_react "move" ~lhs:mov_lhs ~rhs:mov_rhs ~f_sm:None ~f_rnm:mov_f_rnm
+            and estConn1AF_react = parse_react "estConn1AF" ~lhs:estConn1AF_lhs ~rhs:estConn1AF_rhs ~f_sm:None ~f_rnm:estConn1AF_f_rnm
+            and estConn2AF_react = parse_react "estConn2AF" ~lhs:estConn2AF_lhs ~rhs:estConn2AF_rhs ~f_sm:None ~f_rnm:estConn2AF_f_rnm
+            and breConn_react = parse_react "breConn" ~lhs:breConn_lhs ~rhs:breConn_rhs ~f_sm:None ~f_rnm:breConn_f_rnm 
+            in
+                let rules = [mov_react;estConn1AF_react;estConn2AF_react;breConn_react]
+                and _ = Parmap.set_default_ncores 4
+                in
+                    let _ = parexplore_ss ~s0 ~rules ~max_steps:3
+                    in
+                    ()
+
+let () =
+    Landmark.start_profiling () ;  
+    profile ()
+
 

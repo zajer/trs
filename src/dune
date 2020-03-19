@@ -1,7 +1,15 @@
 
-(library
-  (name tracking_bigraph)
-  (public_name tracking_bigraph)
-  (libraries bigraph parmap csv )		   ; Nazwy bibliotek używanych w projekcie oddzielone spacją. Nazwa biblioteki taka jaką podajesz w 'opam install nazwa_biblioteki'
-)
+;(library
+;  (name tracking_bigraph)
+;  (public_name tracking_bigraph)
+;  (libraries bigraph parmap csv landmarks)		   ; Nazwy bibliotek używanych w projekcie oddzielone spacją. Nazwa biblioteki taka jaką podajesz w 'opam install nazwa_biblioteki'
+;)
 
+(executable
+  (name TBrs)
+  (libraries bigraph parmap csv landmarks unix)
+  (modes native )  
+  (preprocess
+    (pps landmarks.ppx --thread)
+  )
+) 
