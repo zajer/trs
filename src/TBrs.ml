@@ -421,7 +421,7 @@ let readlines filename =
             List.rev !lines ;;
 
 let profile () = 
-    let s0_to_parse = List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" (readlines "s0v2.txt") 
+    let s0_to_parse = List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" (readlines "s0v3.txt") 
     and move_lhs_to_parse = List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" (readlines "mov_lhs.txt") 
     and move_rhs_to_parse = List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" (readlines "mov_rhs.txt") 
     and estConn2AF_lhs_to_parse = List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" (readlines "estConn2AF_lhs.txt") 
@@ -453,7 +453,7 @@ let profile () =
                 let rules = [mov_react;estConn1AF_react;estConn2AF_react;breConn_react]
                 and _ = Parmap.set_default_ncores 4
                 in
-                    let _ = parexplore_ss ~s0 ~rules ~max_steps:300
+                    let _ = parexplore_ss ~s0 ~rules ~max_steps:1
                     in
                     ()
 
