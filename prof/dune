@@ -1,0 +1,6 @@
+
+(executable
+  (name trs_prof)               ; The name of your entry file, minus the .ml
+  (libraries tracking_bigraph )          ; Express a dependency on the 'lib' module
+  (modes (native exe) )             ; Tryb budowania programu exe to native byte to byte
+) 
