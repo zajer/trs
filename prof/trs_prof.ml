@@ -109,7 +109,7 @@ let [@landmark] find_iso_indexed_big (patt:Big.t) (loib:(Big.t*int) list) =
         List.fold_left 
             (
                 fun (res_eq,res_neq,found) (t,i)  -> 
-                    if not found && Big.key t = patt_key && Big.equal t patt then
+                    if not found && (Big.key t = patt_key) [@landmark "key_check"]&& (Big.equal t patt)[@landmark "equality_check"] then
                         (t,i),res_neq,true
                     else
                         res_eq,(t,i)::res_neq,found
