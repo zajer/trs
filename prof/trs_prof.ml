@@ -100,6 +100,35 @@ let [@landmark] rec group_based_on_iso_res_states lot =
             let grouped_rest = group_based_on_iso_res_states rest'
             in 
                 [t.rs,t::equal_with_t] @ grouped_rest
+
+let [@landmark] split_into_iso_trans_indexed (patt:Big.t) (rest:(t*int*int) list) =
+    let patt_dig = Digraph.big_2_dig patt
+    in
+    let patt_key = Digraph.hash_graph patt_dig
+    in
+        List.fold_left 
+            (
+                fun  (res_eq,res_neq) (t,i1,i2)-> 
+                    let checked_dig = Digraph.big_2_dig t.rs
+                    in
+                    if (Digraph.hash_graph checked_dig = patt_key)[@landmark "key_check"] && (Big.equal t.rs patt)[@landmark "equality_check"] then
+                        (t,i1,i2)::res_eq,res_neq
+                    else
+                        res_eq,(t,i1,i2)::res_neq
+            )
+            ([],[])
+            rest
+let [@landmark] rec group_indexed_based_on_iso_res_states lot = 
+    match lot with
+        | [] -> []
+        | (t,i1,i2)::rest -> 
+            let equal_with_t, rest' = split_into_iso_trans_indexed t.rs rest
+            in 
+                let grouped_rest = group_indexed_based_on_iso_res_states rest'
+                in 
+                    [t.rs,(t,i1,i2)::equal_with_t] @ grouped_rest
+let [@landmark] step b lr =
+    List.fold_left (fun res r -> apply_trr b r @ res) [] lr
 let [@landmark] step_grouped_iso_res b lr =
     let raw_result = List.fold_left (fun res r -> apply_trr b r @ res) [] lr
         in  
@@ -211,8 +240,34 @@ let [@landmark] initial_indexing (btll:(Big.t * t list) list ) ~(init_state_idx:
         )
         mapped
         ([],[])
-        
-            
+let [@landmark] initially_index_trans init_idx trans =
+    List.map 
+    (
+        fun t -> t,init_idx,-1
+    )
+    trans    
+let [@landmark] _gen_trans_and_init_index rules unchecked =
+    List.fold_left 
+    (
+    fun res_trans (uncheck_state,us_idx) ->
+        step uncheck_state rules |> initially_index_trans us_idx |> List.rev_append res_trans
+    )
+    []
+    unchecked
+let [@landmark] _gen_unique_states grouped_indexed_trans ~checked ~unchecked ~new_unchecked_propositions c_uc_sum = 
+    let filtered_of_all,iso_all = filter_and_reindex_duplicatesV2 ~reindex_of:(checked@unchecked) ~reindex_from:new_unchecked_propositions
+    in 
+        let reindexed_by_all, my_new_unchecked = apply_reindexing_exclude_rest grouped_indexed_trans iso_all
+        in
+            let my_new_unchecked_states_reindexed,iso_reindexing = regen_indexing (c_uc_sum) filtered_of_all
+            in
+                let my_trans = (apply_reindexing my_new_unchecked iso_reindexing)@reindexed_by_all
+                (*and _ = "new unchecked propositions length:"^(string_of_int (List.length new_unchecked_propositions)) |> print_endline
+                and _ = "my new unchecked length:"^(string_of_int (List.length my_new_unchecked_states_reindexed )) |> print_endline*)
+                in
+                my_trans, 
+                my_new_unchecked_states_reindexed,
+                (List.length my_new_unchecked_states_reindexed);;
 let [@landmark] _gen_trans_and_unique_states 
     ~(rules:react list) 
     ~(checked:(Big.t*int) list) 
@@ -272,13 +327,20 @@ let [@landmark] _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked
                     ~new_unchecked_states_number  
         )
         unchecked
-        ([],[],0)
+        ([],[],0);;
+let [@landmark] _pargen_of_trans_and_unique_statesV2 ~(rules:react list) ~(checked:(Big.t * int) list) ~unchecked =
+    let checked_unchecked_sum = List.length checked + List.length unchecked
+    and initially_indexed_trans = _gen_trans_and_init_index rules unchecked
+    in
+        let new_unchecked_propositions,grouped_trans = group_indexed_based_on_iso_res_states initially_indexed_trans |> List.mapi (fun i (b,tl) -> (b,i),tl) |> List.split
+        in
+        _gen_unique_states (grouped_trans |> List.flatten) ~checked ~unchecked ~new_unchecked_propositions checked_unchecked_sum;;
 let rec _parexplore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:(Big.t*int) list) ~unchecked =
         if current_step < max_steps then
             match unchecked with
             | [] -> [],checked,[],current_step
             | _ ->
-                let res_trans,res_unchecked,_ = _pargen_of_trans_and_unique_states ~rules ~checked ~unchecked
+                let res_trans,res_unchecked,_ = _pargen_of_trans_and_unique_statesV2 ~rules ~checked ~unchecked
                 in
                     let given_transitions,given_unique_states,given_unique_unchecked,last_reached_step = _parexplore_ss ~rules ~max_steps ~current_step:(current_step+1) ~checked:(checked@unchecked) ~unchecked:res_unchecked
                     in
