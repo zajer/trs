@@ -58,12 +58,16 @@ let [@landmark] translate_trans ~(output_res_state:Big.t) ~(translated:t) =
                 rl=translated.rl
             }      
 let [@landmark] split_into_iso_trans (patt:Big.t) (rest:t list) =
-    let patt_key = Big.key patt
+    let patt_dig = Digraph.big_2_dig patt
+    in
+    let patt_key = Digraph.hash_graph patt_dig
     in
         List.fold_left 
             (
                 fun  (res_eq,res_neq) t-> 
-                    if (Big.key t.rs = patt_key)[@landmark "key_check"] && (Big.equal t.rs patt)[@landmark "equality_check"] then
+                    let checked_dig = Digraph.big_2_dig t.rs
+                    in
+                    if (Digraph.hash_graph checked_dig = patt_key)[@landmark "key_check"] && (Big.equal t.rs patt)[@landmark "equality_check"] then
                             t::res_eq,res_neq
                     else
                         res_eq,t::res_neq
@@ -104,12 +108,16 @@ let [@landmark] step_grouped_iso_res b lr =
                 grouped_result
 
 let [@landmark] find_iso_indexed_big (patt:Big.t) (loib:(Big.t*int) list) =
-    let patt_key = Big.key patt
+    let patt_dig = Digraph.big_2_dig patt
+    in
+    let patt_key = Digraph.hash_graph patt_dig
     in
         List.fold_left 
             (
                 fun (res_eq,res_neq,found) (t,i)  -> 
-                    if not found && (Big.key t = patt_key) [@landmark "key_check"]&& (Big.equal t patt)[@landmark "equality_check"] then
+                    let checked_dig = Digraph.big_2_dig t
+                    in
+                    if not found && (Digraph.hash_graph checked_dig = patt_key) [@landmark "key_check"]&& (Big.equal t patt)[@landmark "equality_check"] then
                         (t,i),res_neq,true
                     else
                         res_eq,(t,i)::res_neq,found
@@ -284,6 +292,8 @@ let parexplore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
     in
         _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked
         
+        open Bigraph
+
 let s0_to_parse =
 "
 {(0, AL:0),(1, AF:4),(2, UAV:1),(3, AF:4),(4, AF:4),(5, UAV:1),(6, AF:4),(7, UAV:1),(8, AF:4),(9, AF:4),(10, AF:4),(11, AF:4),(12, AF:4),(13, AF:4),(14, AF:4),(15, AF:4)}
@@ -457,8 +467,8 @@ let estConn1AF_react = parse_react "estConn1AF" ~lhs:estConn1AF_lhs ~rhs:estConn
 let estConn2AF_react = parse_react "estConn2AF" ~lhs:estConn2AF_lhs ~rhs:estConn2AF_rhs ~f_sm:None ~f_rnm:estConn2AF_f_rnm
 let rules = [mov_react;estConn1AF_react;estConn2AF_react];;
 
-(*Landmark.start_profiling ();;*)
-let tl,ss,uss,ms = parexplore_ss ~s0 ~rules ~max_steps:1;;
+Landmark.start_profiling ();;
+let tl,ss,uss,ms = parexplore_ss ~s0 ~rules ~max_steps:300;;
 
 print_endline ("Number of transitions:" ^ ( string_of_int (List.length tl) ) );
 print_endline ("Number of checked unique states:" ^ ( string_of_int (List.length ss) ) );;
