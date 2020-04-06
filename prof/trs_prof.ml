@@ -63,7 +63,7 @@ let [@landmark] split_into_iso_trans (patt:Big.t) (rest:t list) =
         List.fold_left 
             (
                 fun  (res_eq,res_neq) t-> 
-                    if Big.key t.rs = patt_key && Big.equal t.rs patt then
+                    if (Big.key t.rs = patt_key)[@landmark "key_check"] && (Big.equal t.rs patt)[@landmark "equality_check"] then
                             t::res_eq,res_neq
                     else
                         res_eq,t::res_neq
@@ -217,9 +217,19 @@ let [@landmark] _gen_trans_and_unique_states
     ~new_unchecked_states_number
     =
     let res_su = step_grouped_iso_res ms rules
+    (*and _ = "liczba sprawdzonych, teraz sprawdzanych i nowych niesprawdzonych:"^(string_of_int (List.length (checked@unchecked@new_unchecked_states))) |> print_endline*)
     in
         let indexed_res_states, initially_indexed_transitions = initial_indexing res_su ~init_state_idx:ms_idx  ~checked_unchecked_sum:c_uc_sum
         in
+        let filtered_of_all,iso_all = filter_and_reindex_duplicatesV2 ~reindex_of:(checked@unchecked@new_unchecked_states) ~reindex_from:indexed_res_states 
+        in 
+            let reindexed_by_all, my_new_unchecked = apply_reindexing_exclude_rest initially_indexed_transitions iso_all
+            in
+                let my_new_unchecked_states_reindexed,iso_reindexing = regen_indexing (c_uc_sum+new_unchecked_states_number) filtered_of_all
+                in
+                    let my_trans = (apply_reindexing my_new_unchecked iso_reindexing)@reindexed_by_all
+                    in
+        (*
             let filtered_of_checked,iso_checked = filter_and_reindex_duplicatesV2 ~reindex_of:checked ~reindex_from:indexed_res_states 
             in
                 let trans_reindexed_by_checked,trans_unique_p1 = apply_reindexing_exclude_rest initially_indexed_transitions iso_checked
@@ -232,7 +242,7 @@ let [@landmark] _gen_trans_and_unique_states
                         and my_new_unchecked_states_reindexed,iso_reindexing = regen_indexing (c_uc_sum+new_unchecked_states_number) filtered_of_results
                         in
                             let my_trans = (apply_reindexing trans_unique_p3 iso_reindexing)@trans_reindexed_by_checked@trans_reindexed_by_unchecked@trans_reindexed_by_results
-                            in
+                            in*)
                                 my_trans@trans, 
                                 my_new_unchecked_states_reindexed@new_unchecked_states,
                                 ( (List.length my_new_unchecked_states_reindexed)+new_unchecked_states_number )
@@ -447,8 +457,39 @@ let estConn1AF_react = parse_react "estConn1AF" ~lhs:estConn1AF_lhs ~rhs:estConn
 let estConn2AF_react = parse_react "estConn2AF" ~lhs:estConn2AF_lhs ~rhs:estConn2AF_rhs ~f_sm:None ~f_rnm:estConn2AF_f_rnm
 let rules = [mov_react;estConn1AF_react;estConn2AF_react];;
 
-Landmark.start_profiling ();;
-let tl,ss,uss,ms = parexplore_ss ~s0 ~rules ~max_steps:300;;
+(*Landmark.start_profiling ();;*)
+let tl,ss,uss,ms = parexplore_ss ~s0 ~rules ~max_steps:1;;
 
 print_endline ("Number of transitions:" ^ ( string_of_int (List.length tl) ) );
-print_endline ("Number of unique states:" ^ ( string_of_int (List.length ss) ) );;
+print_endline ("Number of checked unique states:" ^ ( string_of_int (List.length ss) ) );;
+print_endline ("Number of unchecked unique states:" ^ ( string_of_int (List.length uss) ) );;
+(*
+let keys = Hashtbl.create 30;;
+List.iter 
+    (fun (s,_) -> 
+        
+        (Hashtbl.add keys (Big.key s) s)
+    ) 
+    (ss@uss);;
+let num_of_keys = Hashtbl.length keys;;
+"Number of big keys "^(string_of_int num_of_keys) |> print_endline;;
+let ks = Hashtbl.to_seq_keys keys ;;
+Seq.iter 
+    (
+        fun k -> 
+            "Key:"^(string_of_int k) |> print_endline; 
+            "Num of bindings:"^(string_of_int (List.length (Hashtbl.find_all keys k))) |> print_endline
+    )
+    ks
+    ;;
+*)
+(*
+List.iter 
+    (fun (s,_) -> 
+        
+        "Key:\n"^(string_of_int (Big.key s)) |> print_endline; 
+        "Big:\n"^(Big.to_string s) |> print_endline
+        
+    ) 
+    (ss@uss);;
+*)
