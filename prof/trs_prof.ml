@@ -560,6 +560,7 @@ List.iter
     (fun (s,_) -> 
         
         "Key:\n"^(string_of_int (Big.key s)) |> print_endline; 
+        "Hash:\n"^(Z.to_string (Digraph.big_2_dig s |> Digraph.hash_graph)) |> print_endline; 
         "Big:\n"^(Big.to_string s) |> print_endline
         
     ) 

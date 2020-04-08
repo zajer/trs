@@ -49,6 +49,7 @@ module NS = Set.Make(
     type t = nt
     end )
 type t = NS.t*Bigraph.Sparse.t
+type graph = {nodes:NS.t;edges:Sparse.t}
 let big_2_dig (b:Big.t) =
     let non = Nodes.size b.n
     and nohe = Link.Lg.cardinal b.l
@@ -60,7 +61,10 @@ let big_2_dig (b:Big.t) =
             let adj_part = Sparse.make (non+nohe) (non+nohe) |> Sparse.add_list
             and ns = NS.of_list ns
             in
-            ns,adj_part es
+            {
+                nodes=ns;
+                edges=(adj_part es)
+            }
 
 let hash_string str =
     let digest = (Digest.string str)
@@ -145,7 +149,9 @@ let rec hash_of_node node_id nodes adj_mx =
                 in
                     hash_of_single_node node_to_hash children_hash flag
 
-let hash_graph (nodes,adj_mx) =
+let hash_graph g =
+    let nodes = g.nodes
+    and adj_mx = g.edges in
     let orpans = Sparse.orphans adj_mx
     in
         if IntSet.cardinal orpans <> 1 then
