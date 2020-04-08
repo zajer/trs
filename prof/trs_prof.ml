@@ -103,6 +103,7 @@ let [@landmark] rec group_based_on_iso_res_states lot =
 
 let [@landmark] split_into_iso_trans_indexed (patt:Big.t) (rest:(t*int*int) list) =
     let patt_dig = Digraph.big_2_dig patt
+    and remote_eq = Remote.remote_equal ~address:"localhost" ~port:"4000"
     in
     let patt_key = Digraph.hash_graph patt_dig
     in
@@ -111,7 +112,7 @@ let [@landmark] split_into_iso_trans_indexed (patt:Big.t) (rest:(t*int*int) list
                 fun  (res_eq,res_neq) (t,i1,i2)-> 
                     let checked_dig = Digraph.big_2_dig t.rs
                     in
-                    if (Digraph.hash_graph checked_dig = patt_key)[@landmark "key_check"] && (Big.equal t.rs patt)[@landmark "equality_check"] then
+                    if (Digraph.hash_graph checked_dig = patt_key)[@landmark "key_check"] && (remote_eq t.rs patt)[@landmark "equality_check"] then
                         (t,i1,i2)::res_eq,res_neq
                     else
                         res_eq,(t,i1,i2)::res_neq
@@ -138,6 +139,7 @@ let [@landmark] step_grouped_iso_res b lr =
 
 let [@landmark] find_iso_indexed_big (patt:Big.t) (loib:(Big.t*int) list) =
     let patt_dig = Digraph.big_2_dig patt
+    and remote_eq = Remote.remote_equal ~address:"localhost" ~port:"4000"
     in
     let patt_key = Digraph.hash_graph patt_dig
     in
@@ -146,7 +148,7 @@ let [@landmark] find_iso_indexed_big (patt:Big.t) (loib:(Big.t*int) list) =
                 fun (res_eq,res_neq,found) (t,i)  -> 
                     let checked_dig = Digraph.big_2_dig t
                     in
-                    if not found && (Digraph.hash_graph checked_dig = patt_key) [@landmark "key_check"]&& (Big.equal t patt)[@landmark "equality_check"] then
+                    if not found && (Digraph.hash_graph checked_dig = patt_key) [@landmark "key_check"]&& (remote_eq t patt)[@landmark "equality_check"] then
                         (t,i),res_neq,true
                     else
                         res_eq,(t,i)::res_neq,found
@@ -530,8 +532,9 @@ let estConn2AF_react = parse_react "estConn2AF" ~lhs:estConn2AF_lhs ~rhs:estConn
 let rules = [mov_react;estConn1AF_react;estConn2AF_react];;
 
 Landmark.start_profiling ();;
+Curl.global_init ( Curl.CURLINIT_GLOBALALL );;
 let tl,ss,uss,ms = parexplore_ss ~s0 ~rules ~max_steps:300;;
-
+Curl.global_cleanup ();;
 print_endline ("Number of transitions:" ^ ( string_of_int (List.length tl) ) );
 print_endline ("Number of checked unique states:" ^ ( string_of_int (List.length ss) ) );;
 print_endline ("Number of unchecked unique states:" ^ ( string_of_int (List.length uss) ) );;
