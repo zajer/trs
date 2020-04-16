@@ -56,21 +56,26 @@ let [@landmark] translate_trans ~(output_res_state:Big.t) ~(translated:t) =
                 rf=res_residue_fun;
                 p=translated.p;
                 rl=translated.rl
-            }      
+            }
+open Onauty  
 let [@landmark] split_into_iso_trans (patt:Big.t) (rest:t list) =
     let patt_dig = Digraph.big_2_dig patt
     in
     let patt_key = Digraph.hash_graph patt_dig
+    and patt_graph = Dig2graph.dig_2_graph patt_dig
+    and eq = Iso.are_digraphs_iso
     in
         List.fold_left 
             (
                 fun  (res_eq,res_neq) t-> 
                     let checked_dig = Digraph.big_2_dig t.rs
                     in
-                    if (Digraph.hash_graph checked_dig = patt_key)[@landmark "key_check"] && (Big.equal t.rs patt)[@landmark "equality_check"] then
-                            t::res_eq,res_neq
-                    else
-                        res_eq,t::res_neq
+                        let checked_graph = Dig2graph.dig_2_graph checked_dig
+                        in
+                            if (Digraph.hash_graph checked_dig = patt_key)[@landmark "key_check"] && (eq checked_graph patt_graph)[@landmark "equality_check"] then
+                                    t::res_eq,res_neq
+                            else
+                                res_eq,t::res_neq
             )
             ([],[])
             rest
@@ -103,16 +108,19 @@ let [@landmark] rec group_based_on_iso_res_states lot =
 
 let [@landmark] split_into_iso_trans_indexed (patt:Big.t) (rest:(t*int*int) list) =
     let patt_dig = Digraph.big_2_dig patt
-    and remote_eq = Remote.remote_equal ~address:"localhost" ~port:"4000"
+    and eq = Iso.are_digraphs_iso
     in
     let patt_key = Digraph.hash_graph patt_dig
+    and patt_graph = Dig2graph.dig_2_graph patt_dig
     in
         List.fold_left 
             (
                 fun  (res_eq,res_neq) (t,i1,i2)-> 
                     let checked_dig = Digraph.big_2_dig t.rs
                     in
-                    if (Digraph.hash_graph checked_dig = patt_key)[@landmark "key_check"] && (remote_eq t.rs patt)[@landmark "equality_check"] then
+                    let checked_graph = Dig2graph.dig_2_graph checked_dig
+                    in
+                    if (Digraph.hash_graph checked_dig = patt_key)[@landmark "key_check"] && (eq checked_graph patt_graph)[@landmark "equality_check"] then
                         (t,i1,i2)::res_eq,res_neq
                     else
                         res_eq,(t,i1,i2)::res_neq
@@ -139,16 +147,19 @@ let [@landmark] step_grouped_iso_res b lr =
 
 let [@landmark] find_iso_indexed_big (patt:Big.t) (loib:(Big.t*int) list) =
     let patt_dig = Digraph.big_2_dig patt
-    and remote_eq = Remote.remote_equal ~address:"localhost" ~port:"4000"
+    and eq = Iso.are_digraphs_iso
     in
     let patt_key = Digraph.hash_graph patt_dig
+    and patt_graph = Dig2graph.dig_2_graph patt_dig
     in
         List.fold_left 
             (
                 fun (res_eq,res_neq,found) (t,i)  -> 
                     let checked_dig = Digraph.big_2_dig t
                     in
-                    if not found && (Digraph.hash_graph checked_dig = patt_key) [@landmark "key_check"]&& (remote_eq t patt)[@landmark "equality_check"] then
+                    let checked_graph = Dig2graph.dig_2_graph checked_dig
+                    in
+                    if not found && (Digraph.hash_graph checked_dig = patt_key) [@landmark "key_check"]&& (eq checked_graph patt_graph)[@landmark "equality_check"] then
                         (t,i),res_neq,true
                     else
                         res_eq,(t,i)::res_neq,found
