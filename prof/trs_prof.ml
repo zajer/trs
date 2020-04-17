@@ -136,6 +136,72 @@ let [@landmark] rec group_indexed_based_on_iso_res_states lot =
                 let grouped_rest = group_indexed_based_on_iso_res_states rest'
                 in 
                     [t.rs,(t,i1,i2)::equal_with_t] @ grouped_rest
+let [@landmark] find_previous_iso_res_trans_opt aot i_fin rs =
+    let found_idx = ref (-1) 
+    and is_found = ref false
+    and patt_dig = Digraph.big_2_dig rs
+    and eq = Iso.are_digraphs_iso
+    in
+    let patt_key = Digraph.hash_graph patt_dig
+    and patt_graph = Dig2graph.dig_2_graph patt_dig
+    in
+        Array.iteri 
+            (
+                fun i_curr (t_ch,_,_) -> 
+                    let checked_dig = Digraph.big_2_dig t_ch.rs
+                    in
+                        let checked_graph = Dig2graph.dig_2_graph checked_dig
+                        in
+                            if not !is_found && i_curr < i_fin && (Digraph.hash_graph checked_dig = patt_key)[@landmark "key_check"] && (eq checked_graph patt_graph)[@landmark "equality_check"] then
+                            (
+                                found_idx := i_curr;
+                                is_found := true
+                            )
+            )
+            aot;
+            if !is_found then
+                Some !found_idx
+            else
+                None
+let [@landmark] map_trans_to_previous_found aot =
+    Array.mapi
+        (
+            fun i (t_m,isi_m,rsi_m) ->
+                let iso_idx_opt = find_previous_iso_res_trans_opt aot i t_m.rs
+                in
+                match iso_idx_opt with
+                | None -> i,t_m,isi_m,rsi_m
+                | Some iso_idx -> iso_idx,t_m,isi_m,rsi_m
+        )
+        aot
+let [@landmark] split_into_eq_mapped_trans patt aomt =
+    let patt_idx,_,_,_ = patt
+    in
+    List.fold_left 
+            (
+                fun  (res_eq,res_neq) (idx,t,i1,i2)-> 
+                    if patt_idx = idx then
+                        (t,i1,i2)::res_eq,res_neq
+                    else
+                        res_eq,(idx,t,i1,i2)::res_neq
+            )
+            ([],[])
+            aomt
+let [@landmark] rec group_mapped_trans aomt =
+    match aomt with
+        | [] -> []
+        | mtrans::rest -> 
+        let equal_with_t, rest' = split_into_eq_mapped_trans mtrans rest
+        in 
+            let grouped_rest = group_mapped_trans rest'
+            and _,trans,isi,rsi = mtrans
+            in 
+                [trans.rs,(trans,isi,rsi)::equal_with_t] @ grouped_rest
+
+let [@landmark] group_indexed_based_on_iso_res_statesV2 lot =
+    let mapped_aot = Array.of_list lot |> map_trans_to_previous_found
+    in
+        group_mapped_trans (Array.to_list mapped_aot)
 let [@landmark] step b lr =
     List.fold_left (fun res r -> apply_trr b r @ res) [] lr
 let [@landmark] step_grouped_iso_res b lr =
