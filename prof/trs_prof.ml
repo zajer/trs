@@ -269,7 +269,50 @@ let [@landmark] filter_and_reindex_duplicatesV2 ~reindex_of:(rof:(Big.t * int) l
     in
         if rfr_count >= rof_count then filter_and_reindex_duplicates_case2 ~reindex_of:rof ~reindex_from:rfr
         else filter_and_reindex_duplicates_case1 ~reindex_of:rof ~reindex_from:rfr
-     
+module HashMap = Map.Make(struct
+    let compare = Z.compare
+    type t = Z.t
+  end)
+let [@landmark] filter_and_reindex_duplicatesV3 ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
+    let rof_mapped = List.map 
+        (
+        fun (b,i) -> 
+                let dig = Digraph.big_2_dig b 
+                in
+                Digraph.hash_graph dig,b,i
+        )
+        rof
+    in
+        let rof_map = List.fold_left 
+            (
+                fun map (h,b,i) -> 
+                match HashMap.find_opt h map with
+                | None -> HashMap.add h [(b,i)] map
+                | Some l -> HashMap.add h ((b,i)::l) map
+            )
+            HashMap.empty
+            rof_mapped
+        in
+        List.fold_left 
+        (
+            fun (rest_unique,rest_isos) (b_rfr,rfr_idx) -> 
+                let b_rfr_hash = Digraph.big_2_dig b_rfr |> Digraph.hash_graph
+                in
+                let b_with_equal_hash = HashMap.find_opt b_rfr_hash rof_map
+                in
+                    match b_with_equal_hash with
+                    | None -> (b_rfr,rfr_idx)::rest_unique,rest_isos
+                    | Some l -> 
+                        let (_ ,rof_idx), _,is_found = find_iso_indexed_big b_rfr l
+                        in
+                            if is_found then
+                                rest_unique,(rfr_idx,rof_idx)::rest_isos
+                            else
+                                (b_rfr,rfr_idx)::rest_unique,rest_isos
+        )
+        ([],[])
+        rfr
+    
 let [@landmark] regen_indexing (ci:int) (ri:(Big.t * int) list) =
     let indexing = List.mapi (fun i (b,_) -> b,i+ci) ri
     in
@@ -334,7 +377,7 @@ let [@landmark] _gen_trans_and_init_index rules unchecked =
     []
     unchecked
 let [@landmark] _gen_unique_states grouped_indexed_trans ~checked ~unchecked ~new_unchecked_propositions c_uc_sum = 
-    let filtered_of_all,iso_all = filter_and_reindex_duplicatesV2 ~reindex_of:(checked@unchecked) ~reindex_from:new_unchecked_propositions
+    let filtered_of_all,iso_all = filter_and_reindex_duplicatesV3 ~reindex_of:(checked@unchecked) ~reindex_from:new_unchecked_propositions
     in 
         let reindexed_by_all, my_new_unchecked = apply_reindexing_exclude_rest grouped_indexed_trans iso_all
         in
