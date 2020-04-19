@@ -1,6 +1,6 @@
 (lang dune 2.0)
 (name tracking_bigraph)
-(version 0.3.2)
+(version 0.5)
 (generate_opam_files true)
 
 (source (github zajer/trs))
