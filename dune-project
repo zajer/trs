@@ -14,9 +14,9 @@
   (name tracking_bigraph)
   (synopsis "An OCaml library for Tracking Reactive Systems")
   (description "
-    Tracking_bigraph is an addon to the OCaml library \"bigraph\" made by Michele Sevegnani. 
+    Tracking_bigraph is an addon to the OCaml library \"bigraph\". 
     It allows designing and evaluating bigraphical reactive systems with nodes tracking between state transitions. 
-    Additionally it allows for export of calculated state space to a file. 
+    Additionally it allows to export calculated state space to a file. 
     It also tries to parallelize some of computations.")
   (tags ("bigraph" "tracking" "trs" "brs") )
   (depends

@@ -1,6 +1,6 @@
 
-(executable
-  (name usage)
+(executables
+  (names uav_example usage)
   (libraries tracking_bigraph )
   (modes (native exe) )
 ) 
