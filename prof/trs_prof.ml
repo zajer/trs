@@ -457,12 +457,53 @@ let [@landmark] _pargen_of_trans_and_unique_statesV2 ~(rules:react list) ~(check
         let new_unchecked_propositions,grouped_trans = group_indexed_based_on_iso_res_states initially_indexed_trans |> List.mapi (fun i (b,tl) -> (b,i),tl) |> List.split
         in
         _gen_unique_states (grouped_trans |> List.flatten) ~checked ~unchecked ~new_unchecked_propositions checked_unchecked_sum;;
+let [@landmark] split_into_iso_trans_list (patt:Big.t) (rest:(Big.t * t list) list) =
+    let patt_dig = Digraph.big_2_dig patt
+    and eq = Iso.are_digraphs_iso
+    in
+    let patt_key = Digraph.hash_graph patt_dig
+    and patt_graph = Dig2graph.dig_2_graph patt_dig
+    in
+        List.fold_left 
+            (
+                fun  (res_eq,res_neq) (b,tl)-> 
+                    let checked_dig = Digraph.big_2_dig b
+                    in
+                    let checked_graph = Dig2graph.dig_2_graph checked_dig
+                    in
+                    if (Digraph.hash_graph checked_dig = patt_key)[@landmark "key_check"] && (eq checked_graph patt_graph)[@landmark "equality_check"] then
+                        tl::res_eq,res_neq
+                    else
+                        res_eq,(b,tl)::res_neq
+            )
+            ([],[])
+            rest;;
+let rec merge_iso_groups logt =
+    match logt with
+        | [] -> []
+        | (b,tl)::rest -> 
+            let equal_with_t, rest' = split_into_iso_trans_list b rest
+            in 
+                let grouped_rest = merge_iso_groups rest'
+                in
+                let my_res = b,(tl@(List.flatten equal_with_t))
+                in
+                my_res :: grouped_rest
+
+
+let [@landmark] _pargen_of_trans_and_unique_statesV3 ~(rules:react list) ~(checked:(Big.t * int) list) ~unchecked =
+    let checked_unchecked_sum = List.length checked + List.length unchecked
+    and grouped_trans = List.fold_left (fun logt (s,_) -> (step_grouped_iso_res s rules)::logt ) [] unchecked |> List.flatten
+    in
+        let new_unchecked_propositions,initially_indexed_trans = merge_iso_groups grouped_trans |> List.mapi (fun i (b,tl) -> (b,i),List.map (fun t -> t,i,-1) tl ) |> List.split
+        in
+                _gen_unique_states (initially_indexed_trans |> List.flatten) ~checked ~unchecked ~new_unchecked_propositions checked_unchecked_sum;;
 let rec _parexplore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:(Big.t*int) list) ~unchecked =
         if current_step < max_steps then
             match unchecked with
             | [] -> [],checked,[],current_step
             | _ ->
-                let res_trans,res_unchecked,_ = _pargen_of_trans_and_unique_statesV2 ~rules ~checked ~unchecked
+                let res_trans,res_unchecked,_ = _pargen_of_trans_and_unique_statesV3 ~rules ~checked ~unchecked
                 in
                     let given_transitions,given_unique_states,given_unique_unchecked,last_reached_step = _parexplore_ss ~rules ~max_steps ~current_step:(current_step+1) ~checked:(checked@unchecked) ~unchecked:res_unchecked
                     in
