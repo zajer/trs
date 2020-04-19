@@ -478,7 +478,7 @@ let [@landmark] split_into_iso_trans_list (patt:Big.t) (rest:(Big.t * t list) li
             )
             ([],[])
             rest;;
-let rec merge_iso_groups logt =
+let [@landmark] rec merge_iso_groups logt =
     match logt with
         | [] -> []
         | (b,tl)::rest -> 
