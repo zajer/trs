@@ -47,7 +47,7 @@ let breConn_react = TBrs.parse_react "breConn" ~lhs:breConn_lhs ~rhs:breConn_rhs
 let rules = [mov_react;estConn1AF_react;estConn2AF_react;breConn_react];;
 Parmap.set_default_ncores 4
 
-let tl,ss,uss,ms = TBrs.parexplore_ss ~s0 ~rules ~max_steps:300;;
+let tl,ss,uss,ms = TBrs.parexplore_ss s0 rules 300;;
 
 print_endline ("Number of transitions:" ^ ( string_of_int (List.length tl) ) );
 print_endline ("Number of unique states:" ^ ( string_of_int (List.length ss) ) );;

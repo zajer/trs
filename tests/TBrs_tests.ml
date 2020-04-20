@@ -15,7 +15,7 @@ let test_parexplore_ss_1 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:10
+                let tl,ss,uss,_ = TBrs.parexplore_ss s0 [react] 10
                 in
                     List.iteri
                         (
@@ -41,7 +41,7 @@ let test_parexplore_ss_2 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:3
+                let tl,ss,uss,_ = TBrs.parexplore_ss s0 [react] 3
                 in
                     List.iteri
                         (
@@ -76,7 +76,7 @@ let test_parexplore_ss_3 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:5
+                let tl,ss,uss,_ = TBrs.parexplore_ss s0 [react] 5
                 in
                     List.iteri
                         (
@@ -111,7 +111,7 @@ let test_parexplore_ss_4 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:9
+                let tl,ss,uss,_ = TBrs.parexplore_ss s0 [react] 9
                 in
                     List.iteri
                         (
@@ -146,7 +146,7 @@ let test_parexplore_ss_5 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:15
+                let tl,ss,uss,_ = TBrs.parexplore_ss s0 [react] 15
                 in
                     List.iteri
                         (

@@ -41,7 +41,7 @@ let rule = TBrs.parse_react "move" ~lhs ~rhs ~f_sm:None ~f_rnm:res_map;;
 
 Parmap.set_default_ncores 4
 
-let transitions,checked_states,unchecked_states,used_steps = TBrs.parexplore_ss ~s0:init_state ~rules:[rule] ~max_steps:777;;
+let transitions,checked_states,unchecked_states,used_steps = TBrs.parexplore_ss init_state [rule] 777;;
 
 
 RExp.export_ss_csv transitions (checked_states@unchecked_states)

@@ -43,345 +43,222 @@ let apply_trr (b:Big.t) (r:react) =
     let occs = Big.occurrences ~target:b ~pattern:r.lhs
     in  
         List.fold_left (fun res occ -> apply_trr_with_occ b r occ :: res) [] occs
-let translate_trans ~(output_res_state:Big.t) ~(translated:t) =
-    let translation = TBig.translate_equal ~from_b:translated.rs ~to_b:output_res_state
-    in
-        let res_residue_fun = Utils.transform_fun_dom translated.rf translation
-        in
-            {
-                is=translated.is;
-                rs=output_res_state; 
-                rf=res_residue_fun;
-                p=translated.p;
-                rl=translated.rl
-            }      
-let split_into_iso_trans (patt:Big.t) (rest:t list) =
-    let patt_key = Big.key patt
-    in
-        List.fold_left 
-            (
-                fun  (res_eq,res_neq) t-> 
-                    if Big.key t.rs = patt_key && Big.equal t.rs patt then
-                            t::res_eq,res_neq
-                    else
-                        res_eq,t::res_neq
-            )
-            ([],[])
-            rest
-let translate_all ors ttl =
-    List.fold_left (fun res t -> translate_trans ~translated:t ~output_res_state:ors::res) [] ttl
-let translate_all_iso_trans (patt:Big.t) (all:t list) =
-    let eq,neq = split_into_iso_trans patt all    
-    in
-        let teq = translate_all patt eq
-        in
-            teq,neq
-let rec unify_based_on_iso_res_states lot = 
-    match lot with
-    | [] -> []
-    | t::rest -> 
-        let merged_with_t, rest' = translate_all_iso_trans t.rs rest
-        in 
-            let merged_with_rest = unify_based_on_iso_res_states rest'
-            in 
-                [t.rs,t::merged_with_t] @ merged_with_rest
 let step b lr =
     List.fold_left (fun res r -> apply_trr b r @ res) [] lr
-let step_unified_res b lr =
-    unify_based_on_iso_res_states (step b lr)
-let rec group_based_on_iso_res_states lot = 
-    match lot with
-        | [] -> []
-        | t::rest -> 
-        let equal_with_t, rest' = split_into_iso_trans t.rs rest
-        in 
-            let grouped_rest = group_based_on_iso_res_states rest'
-            in 
-                [t.rs,t::equal_with_t] @ grouped_rest
-let step_grouped_iso_res b lr =
-    let raw_result = List.fold_left (fun res r -> apply_trr b r @ res) [] lr
-        in  
-            let grouped_result = group_based_on_iso_res_states raw_result
-            in
-                grouped_result
-(*
-    Takes a pattern and a list of indexed bigraphs.
-    Returns a bigraph isomorphic to the pattern with index associated to it and information about whether any bigraph has been found.
-    In case of not finding isomorphic bigraph function returns Big.id_eps paired with -1.
-*)
-
-let find_iso_indexed_big (patt:Big.t) (loib:(Big.t*int) list) =
-    let patt_key = Big.key patt
-    in
-        List.fold_left 
+let _split_into_iso_trans patt t_mapped transit_fun key_fun iso_fun =
+    let kh = Hashtbl.create (List.length t_mapped) in
+    let _ = List.iter 
             (
-                fun (res_eq,res_neq,found) (t,i)  -> 
-                    if not found && Big.key t = patt_key && Big.equal t patt then
-                        (t,i),res_neq,true
-                    else
-                        res_eq,(t,i)::res_neq,found
+                fun (t,k) -> 
+                match Hashtbl.find_opt kh k with
+                | None -> Hashtbl.add kh k [(t,k)]
+                | Some l -> Hashtbl.add kh k ((t,k)::l) 
             )
-            ( (Big.id_eps,-1) ,[],false)
-            loib
-
-(*let parfind_iso_indexed_big (patt:Big.t) (loib:(Big.t*int) list) =
-    let patt_key = Big.key patt
-    and loib_converted = Parmap.L loib
+            t_mapped in
+    let patt_transit = transit_fun patt in
+    let patt_key = key_fun patt_transit in
+    let trans_with_equal_rs_key = Hashtbl.find_opt kh patt_key
     in
-        let eq,neq = Parmap.parmapfold 
-            (fun (b,idx)-> (b,idx,(Big.key b)))
-            loib_converted
+        match trans_with_equal_rs_key with
+        | None -> ([],t_mapped)
+        | Some trans ->
+            List.fold_left 
             (
-                fun (b,idx,bk) res ->
-                    match res with
-                    | [],res_neq -> if (bk = patt_key) && (Big.equal patt b ) then 
-                                        [b,idx],res_neq
-                                    else
-                                        [],(b,idx)::res_neq
-                    | res_eq,res_neq -> res_eq,(b,idx)::res_neq
+                fun  (res_eq,res_neq) (t,k)-> 
+                    let checked_transit = transit_fun t.rs in
+                        if iso_fun checked_transit patt_transit then
+                            (t,k)::res_eq,res_neq
+                        else
+                            res_eq,(t,k)::res_neq
             )
             ([],[])
+            trans;;
+let rec _group_based_on_iso_res_states lot transit_fun key_fun iso_fun = 
+    match lot with
+        | [] -> []
+        | (t,k)::rest -> 
+        let equal_with_t, rest' = _split_into_iso_trans t.rs rest transit_fun key_fun iso_fun in 
+        let grouped_rest = _group_based_on_iso_res_states rest' transit_fun key_fun iso_fun in 
+            [(t.rs,k),(t,k)::equal_with_t] |> List.rev_append grouped_rest
+let _step_grouped_iso_res state rules transit_fun key_fun iso_fun =
+    let raw_result = List.fold_left (fun res r -> apply_trr state r |> List.rev_append res) [] rules in
+    let mapped_result = List.map (fun t -> let transit_rs = transit_fun t.rs in t, key_fun transit_rs) raw_result in
+    let grouped_result = _group_based_on_iso_res_states mapped_result transit_fun key_fun iso_fun in
+        grouped_result
+let _gen_semi_grouped_trans_from_states rules states transit_fun key_fun iso_fun =
+    List.fold_left 
+        (fun logt s -> (_step_grouped_iso_res s rules transit_fun key_fun iso_fun)::logt ) 
+        [] 
+        states 
+    |> List.flatten
+let _split_into_iso_trans_list patt gt_mapped transit_fun key_fun iso_fun =
+    let kh = Hashtbl.create (List.length gt_mapped) in
+    let _ = List.iter 
             (
-                fun (eq1,neq1) (eq2,neq2) ->
-                    match eq1,eq2 with 
-                    | [] , [] -> [],neq1@neq2
-                    | eq , [] -> eq,neq1@neq2
-                    | [] , eq -> eq,neq1@neq2
-                    | _, _ -> raise (Invalid_argument "bigraphs not properly indexed!")
+                fun ((b,k),tl) -> 
+                    match Hashtbl.find_opt kh k with
+                    | None -> Hashtbl.add kh k [(b,k),tl]
+                    | Some l -> Hashtbl.add kh k (((b,k),tl)::l) 
             )
+            gt_mapped in
+    let patt_transit = transit_fun patt in
+    let patt_key = key_fun patt_transit in
+    let trans_with_equal_rs_key = Hashtbl.find_opt kh patt_key in
+    match trans_with_equal_rs_key with
+    | None -> ([],gt_mapped)
+    | Some trans ->
+        List.fold_left 
+            (
+                fun  (res_eq,res_neq) ((b,k),tl)-> 
+                    let checked_transit = transit_fun b in
+                    if iso_fun checked_transit patt_transit then
+                        tl::res_eq,res_neq
+                    else
+                        res_eq,((b,k),tl)::res_neq
+            )
+            ([],[])
+            trans;;
+let rec _merge_iso_groups losgt transit_fun key_fun iso_fun =
+    match losgt with
+        | [] -> []
+        | ((b,k),tl)::rest -> 
+            let equal_with_t, rest' = _split_into_iso_trans_list b rest transit_fun key_fun iso_fun
+            in 
+                let merged_rest = _merge_iso_groups rest' in
+                let merged_with_me = (b,k),(tl |> List.rev_append (List.flatten equal_with_t)) in
+                merged_with_me :: merged_rest transit_fun key_fun iso_fun
+let _map_init_index_of_iso_groups logt =
+    List.mapi (fun i ((b,k),tl) -> (b,k,i),List.map (fun (t,k') -> (t,k',i,-1) ) tl ) logt
+let _apply_reindexing loit ridx =
+    List.map
+        (
+            fun (t,init_idx,res_idx) ->
+                let res_idx_reindexed = List.find_opt (fun (orig_idx,_) -> orig_idx = res_idx ) ridx in
+                    match res_idx_reindexed with
+                    | None -> t,init_idx,res_idx
+                    | Some (_, res_idx') -> t,init_idx,res_idx'
+        )
+        loit
+module KeyMap = Map.Make(struct let compare = Z.compare type t = Z.t end)
+let _find_iso_indexed_big patt loib transit_fun iso_fun =
+    let patt_transit = transit_fun patt in
+        let found,rest,is_found = 
+            List.fold_left 
+            (
+                fun (res_eq,res_neq,found) (b,k,i)  -> 
+                    let checked_transit = transit_fun b in
+                    if not found && (iso_fun checked_transit patt_transit) then
+                        (b,k,i),res_neq,true
+                    else
+                        res_eq,(b,k,i)::res_neq,found
+            )
+            ( (Big.id_eps,Z.zero,-1) ,[],false)
+            loib
         in
-            match eq with
-            | [] -> (Big.id_eps,-1),neq,false
-            | _ -> (List.hd eq),neq,true
-*)            
-
-(* reindex_from contains less elements than reindex_of  *)
-let filter_and_reindex_duplicates_case1 ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
+            if not is_found then
+                None
+            else
+                Some (found,rest)
+let _filter_and_reindex_duplicates ~filter_of:rof ~filter_from:rfr transit_fun key_fun iso_fun =
     List.fold_left 
     (
-        fun (rest_unique,rest_isos) (b_rfr,rfr_idx) -> 
-            let (_ ,rof_idx), _,is_found = find_iso_indexed_big b_rfr rof
-            in
-                if is_found then
-                    rest_unique,(rfr_idx,rof_idx)::rest_isos
-                else
-                    (b_rfr,rfr_idx)::rest_unique,rest_isos
+        fun (rest_unique,isos) (b_rfr,b_key,rfr_idx) -> 
+            let b_rfr_transit = transit_fun b_rfr in
+            let b_rfr_key = key_fun b_rfr_transit in
+            let b_with_equal_hash = KeyMap.find_opt b_rfr_key rof in
+                match b_with_equal_hash with
+                | None -> (b_rfr,b_key,rfr_idx)::rest_unique,isos
+                | Some l -> 
+                    let res = List.find_opt (fun (b,_,_) -> transit_fun b |> iso_fun b_rfr_transit ) l (*_find_iso_indexed_big b_rfr l transit_fun iso_fun *) (* nie zmniejszam zbioru przeszukiwan! *)
+                    in
+                        match res with
+                        | None -> (b_rfr,b_key,rfr_idx)::rest_unique,isos
+                        | Some (_,_,rof_idx) -> rest_unique,(rfr_idx,rof_idx)::isos
     )
     ([],[])
     rfr
-(* reindex_of contains less elements than reindex_from  *)
-let filter_and_reindex_duplicates_case2 ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
-    let isos, unique = List.fold_left 
-    (
-        fun (rest_isos,rest_from) (b_rof,rof_idx) -> 
-            let (_ ,rfr_idx), rest_from',is_found = find_iso_indexed_big b_rof rest_from
-            in
-                if is_found then
-                    (rfr_idx,rof_idx)::rest_isos,rest_from'
-                else
-                    rest_isos,rest_from
-    )
-    ([],rfr)
-    rof
-    in
-        unique,isos
-let filter_and_reindex_duplicatesV2 ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
-    let rfr_count = List.length rfr
-    and rof_count = List.length rof
-    in
-        if rfr_count >= rof_count then filter_and_reindex_duplicates_case2 ~reindex_of:rof ~reindex_from:rfr
-        else filter_and_reindex_duplicates_case1 ~reindex_of:rof ~reindex_from:rfr
-     
-(* 
-    Returns all pairs (Big.t * int) from reindex_from which do not exist in reindex_of.
-    Additionaly, it returns list of isomorphisms of indexes from rfr to rof for each element of rfr that exists (is isomorphic to any of the elements) in rof.
-    Assumption: rof and rfr are grouped by which means there are no pairs of bigraphs that are isomorphic to each other.
-*)
-(*
-let rec filter_and_reindex_duplicates ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
-    match rof with
-        | [] -> rfr, []
-        | (t,rof_idx)::rest_of -> 
-        let (_ ,rfr_idx), rest_from,found = find_iso_indexed_big t rfr
-        in 
-            let rest_unique,rest_isos = filter_and_reindex_duplicates ~reindex_of:rest_of ~reindex_from:rest_from
-            in
-                if found then
-                    rest_unique,(rfr_idx,rof_idx)::rest_isos
-                else
-                    rest_unique,rest_isos
-*)
-(* Wydajność parfilter... jet gorsza od filter... jest gorsza *)
-(*
-let parfilter_and_reindex_duplicates ~reindex_of:(rof:(Big.t * int) list ) ~reindex_from:(rfr:(Big.t * int) list ) =
-    let tmp = Parmap.L rfr
-    in
-        Parmap.parmapfold
+let _apply_reindexing_exclude_rest loit ridx =
+    List.fold_left
         (
-            fun (rfr_b,rfr_idx) ->
-                let (_ ,rof_idx), _,found = find_iso_indexed_big rfr_b rof
-                in
-                    if found then
-                        [],[rfr_idx,rof_idx]
-                    else
-                        [rfr_b,rfr_idx],[]
-        )
-        tmp
-        (
-            fun (filtered,iso) (res_filtered,res_iso) ->
-                filtered@res_filtered,iso@res_iso
+            fun (res_app,res_exc) (t,res_key,init_idx,res_idx) ->
+                let res_idx_reindexed = List.find_opt (fun (orig_idx,_) -> orig_idx = res_idx ) ridx in
+                        match res_idx_reindexed with
+                        | None -> res_app,(t,res_key,init_idx,res_idx)::res_exc
+                        | Some (_, res_idx') -> (t,res_key,init_idx,res_idx')::res_app,res_exc
         )
         ([],[])
-        (
-            fun (res_filtered_part1,res_iso_part1) (res_filtered_part2,res_iso_part2)->
-                res_filtered_part1@res_filtered_part2,res_iso_part1@res_iso_part2
-        )
-*)
-
-(*
-    Założenie: indeksacja ci jest od 0 do n-1 (ci to liczba elementow juz indeksowanych)
-*)
-let regen_indexing (ci:int) (ri:(Big.t * int) list) =
-    let indexing = List.mapi (fun i (b,_) -> b,i+ci) ri
+        loit
+let _regen_indexing shift indexed_states_to_regen =
+    let indexing = List.mapi (fun i (b,k,_) -> b,k,i+shift) indexed_states_to_regen in
+    let iso = List.map2 (fun (_,_,oi) (_,_,ri) -> (oi,ri)) indexed_states_to_regen indexing 
     in
-        let iso = List.map2 (fun (_,oi) (_,ri) -> (oi,ri)) ri indexing
+        indexing,iso
+let _apply_reindexing loit ridx =
+    List.map
+        (
+            fun (t,res_key,init_idx,res_idx) ->
+                let res_idx_reindexed = List.find_opt (fun (orig_idx,_) -> orig_idx = res_idx ) ridx
+                    in
+                        match res_idx_reindexed with
+                        | None -> t,res_key,init_idx,res_idx
+                        | Some (_, res_idx') -> t,res_key,init_idx,res_idx'
+        )
+        loit
+let _gen_unique_states ~grouped_indexed_trans ~known_unique_states ~new_unchecked_propositions c_uc_sum transit_fun key_fun iso_fun = 
+    let filtered_of_all,iso_all = _filter_and_reindex_duplicates ~filter_of:known_unique_states ~filter_from:new_unchecked_propositions transit_fun key_fun iso_fun in 
+    let reindexed_by_all, my_new_unchecked = _apply_reindexing_exclude_rest grouped_indexed_trans iso_all in
+    let new_unchecked_states_reindexed,iso_reindexing = _regen_indexing (c_uc_sum) filtered_of_all
+    in
+        let new_trans = (_apply_reindexing my_new_unchecked iso_reindexing) |> List.rev_append reindexed_by_all
         in
-            indexing,iso
-let apply_reindexing loit ridx =
-    let tmp = Parmap.L loit
-    in
-        Parmap.parmap
-            (
-                fun (t,init_idx,res_idx) ->
-                    let res_idx_reindexed = List.find_opt (fun (orig_idx,_) -> orig_idx = res_idx ) ridx
-                        in
-                            match res_idx_reindexed with
-                            | None -> t,init_idx,res_idx
-                            | Some (_, res_idx') -> t,init_idx,res_idx'
-            )
-            tmp
-let apply_reindexing_exclude_rest loit ridx =
-    let tmp = Parmap.L loit
-    in
-        Parmap.parfold
-            (
-                fun (t,init_idx,res_idx) (res_app,res_exc) ->
-                    let res_idx_reindexed = List.find_opt (fun (orig_idx,_) -> orig_idx = res_idx ) ridx
-                        in
-                            match res_idx_reindexed with
-                            | None -> res_app,(t,init_idx,res_idx)::res_exc
-                            | Some (_, res_idx') -> (t,init_idx,res_idx')::res_app,res_exc
-            )
-            tmp
-            ([],[])
-            (
-                fun (app_p1,exc_p1) (app_p2,exc_p2) ->
-                    app_p1@app_p2,exc_p1@exc_p2
-            )        
-let initial_indexing (btll:(Big.t * t list) list ) ~(init_state_idx:int) ~(checked_unchecked_sum:int) =
-    let tmp = Parmap.L btll
-    in
-        Parmap.parmapifold
-            (
-                fun res_state_idx_no_shift (b,tl) ->
-                    let init_val_of_res_state_idx = res_state_idx_no_shift+checked_unchecked_sum+1
-                    in
-                        let indexed_transitions = 
-                            List.fold_left (fun res t -> (t,init_state_idx,init_val_of_res_state_idx)::res) [] tl
-                        in
-                            (b,init_val_of_res_state_idx),indexed_transitions
-            )
-            tmp
-            (
-                fun (ib,its) (res_ib,res_its) ->
-                    ib::res_ib,its@res_its
-            )
-            ([],[])
-            (
-                fun (ibs_rp1,its_rp1) (ibs_rp2,its_rp2) ->
-                    ibs_rp1@ibs_rp2,its_rp1@its_rp2
-            )
-let _gen_trans_and_unique_states 
-    ~(rules:react list) 
-    ~(checked:(Big.t*int) list) 
-    ~unchecked 
-    ~checked_unchecked_sum:(c_uc_sum:int) 
-    ~my_state:ms
-    ~my_state_idx:(ms_idx:int) 
-    ~trans
-    ~new_unchecked_states
-    ~new_unchecked_states_number
-    =
-    let res_su = step_grouped_iso_res ms rules
-    in
-        let indexed_res_states, initially_indexed_transitions = initial_indexing res_su ~init_state_idx:ms_idx  ~checked_unchecked_sum:c_uc_sum
-        in
-            let filtered_of_checked,iso_checked = filter_and_reindex_duplicatesV2 ~reindex_of:checked ~reindex_from:indexed_res_states 
-            in
-                let trans_reindexed_by_checked,trans_unique_p1 = apply_reindexing_exclude_rest initially_indexed_transitions iso_checked
-                and filtered_of_unchecked,iso_unchecked = filter_and_reindex_duplicatesV2 ~reindex_of:unchecked ~reindex_from:filtered_of_checked
-                in
-                    let trans_reindexed_by_unchecked,trans_unique_p2 = apply_reindexing_exclude_rest trans_unique_p1 iso_unchecked
-                    and filtered_of_results, iso_results = filter_and_reindex_duplicatesV2 ~reindex_of:new_unchecked_states ~reindex_from:filtered_of_unchecked
-                    in
-                        let trans_reindexed_by_results,trans_unique_p3 = apply_reindexing_exclude_rest trans_unique_p2 iso_results
-                        and my_new_unchecked_states_reindexed,iso_reindexing = regen_indexing (c_uc_sum+new_unchecked_states_number) filtered_of_results
-                        in
-                            let my_trans = (apply_reindexing trans_unique_p3 iso_reindexing)@trans_reindexed_by_checked@trans_reindexed_by_unchecked@trans_reindexed_by_results
-                            in
-                                my_trans@trans, 
-                                my_new_unchecked_states_reindexed@new_unchecked_states,
-                                ( (List.length my_new_unchecked_states_reindexed)+new_unchecked_states_number )
-let _pargen_of_trans_and_unique_states ~(rules:react list) ~(checked:(Big.t * int) list) ~unchecked =
-    let converted_unchecked = Parmap.L unchecked
-    and checked_unchecked_sum = List.length checked + List.length unchecked
-    in
-    Parmap.parfold
+        new_trans, 
+        new_unchecked_states_reindexed,
+        (List.length new_unchecked_states_reindexed);;
+let _gen_trans_and_unique_states rules ~checked ~unchecked checked_unchecked_sum transit_fun key_fun iso_fun =
+    (* let checked_unchecked_sum = List.length checked + List.length unchecked
+    and *)
+    let unchecked_without_key_and_idx = List.map (fun (b,_,_) -> b) unchecked 
+    and known_unique_states = List.fold_left 
         (
-            fun (ucs,i) (trans,new_unchecked_states,new_unchecked_states_number) ->
-                _gen_trans_and_unique_states 
-                    ~rules 
-                    ~checked 
-                    ~unchecked 
-                    ~checked_unchecked_sum 
-                    ~my_state:ucs 
-                    ~my_state_idx:i 
-                    ~trans 
-                    ~new_unchecked_states 
-                    ~new_unchecked_states_number  
+            fun map (b,k,i) -> 
+            match KeyMap.find_opt k map with
+            | None -> KeyMap.add k [(b,k,i)] map
+            | Some l -> KeyMap.add k ((b,k,i)::l) map
         )
-        converted_unchecked
-        ([],[],0)
-        (
-            fun (trans_part1, new_unchecked_part1,new_unchecked_length_part1) (trans_part2, new_unchecked_part2,new_unchecked_length_part2) -> 
-                let filtered_part2,iso_part_2_to_1 = filter_and_reindex_duplicatesV2 ~reindex_of:new_unchecked_part1 ~reindex_from:new_unchecked_part2
-                and new_length = new_unchecked_length_part1 + new_unchecked_length_part2
-                in
-                    let trans_part2_reindexed_by_part1,trans_part2_unique = apply_reindexing_exclude_rest trans_part2 iso_part_2_to_1
-                    and new_unchecked_part2_reindexed,iso_part2_reindex = regen_indexing (checked_unchecked_sum+new_unchecked_length_part1) filtered_part2
-                    in
-                        let trans_part2_reindexed_by_shift = apply_reindexing trans_part2_unique iso_part2_reindex
-                        in
-                            trans_part1@trans_part2_reindexed_by_part1@trans_part2_reindexed_by_shift,new_unchecked_part1@new_unchecked_part2_reindexed,new_length
-        )
-let rec _parexplore_ss ~(rules:react list) ~(max_steps:int) ~(current_step:int) ~(checked:(Big.t*int) list) ~unchecked =
+        checked
+        unchecked in
+    let semi_grouped_trans = _gen_semi_grouped_trans_from_states rules unchecked_without_key_and_idx transit_fun key_fun iso_fun in
+    let grouped_trans = _merge_iso_groups semi_grouped_trans transit_fun key_fun iso_fun in
+    let new_unchecked_propositions,initially_indexed_trans = _map_init_index_of_iso_groups grouped_trans |> List.split in
+    let new_trans,new_states,num_of_new_states = _gen_unique_states ~grouped_indexed_trans:(initially_indexed_trans |> List.flatten) ~known_unique_states ~new_unchecked_propositions checked_unchecked_sum transit_fun key_fun iso_fun in
+        new_trans,new_states,num_of_new_states,known_unique_states
+let rec _parexplore_ss ~rules ~(max_steps:int) ~(current_step:int) ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun =
         if current_step < max_steps then
             match unchecked with
             | [] -> [],checked,[],current_step
             | _ ->
-                let res_trans,res_unchecked,_ = _pargen_of_trans_and_unique_states ~rules ~checked ~unchecked
-                in
-                    let given_transitions,given_unique_states,given_unique_unchecked,last_reached_step = _parexplore_ss ~rules ~max_steps ~current_step:(current_step+1) ~checked:(checked@unchecked) ~unchecked:res_unchecked
-                    in
-                        res_trans@given_transitions,given_unique_states,given_unique_unchecked,last_reached_step 
+                let res_trans,res_unchecked,num_of_new_unchecked_states,new_checked = _gen_trans_and_unique_states rules ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun in
+                let given_transitions,given_unique_states,given_unique_unchecked,last_reached_step = _parexplore_ss ~rules ~max_steps ~current_step:(current_step+1) ~checked:new_checked ~unchecked:res_unchecked (c_us_sum+num_of_new_unchecked_states) transit_fun key_fun iso_fun in
+                    res_trans@given_transitions,given_unique_states,given_unique_unchecked,last_reached_step 
         else
             [],checked,unchecked,current_step
-let parexplore_ss ~(s0:Big.t) ~(rules:react list) ~(max_steps:int) =
-    let checked = []
-    and current_step = 0 
-    and unchecked = [s0,0]
+let _iso d1 d2 = 
+    let g1 = Digraph.dig_2_graph d1 
+    and g2 = Digraph.dig_2_graph d2
     in
-        _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked
-        
-        
+        Onauty.Iso.are_digraphs_iso ~check_colors:true g1 g2
+let _final_mapping_of_states los= List.map (fun (b,_,i) -> b,i) los
+let parexplore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
+    let transit_fun, key_fun, iso_fun = tools in
+    let s0_k = transit_fun s0 |> key_fun in
+    let checked = KeyMap.empty 
+    and current_step = 0
+    and unchecked = [s0,s0_k,0]
+    and c_us_sum = 1 in
+    let trans,cs_map,ucs,nos = _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun in
+    let _,cs = KeyMap.bindings cs_map |> List.split in
+        List.map (fun (t,_,isi,rsi) -> t,isi,rsi) trans ,
+        _final_mapping_of_states (List.flatten cs) ,
+        _final_mapping_of_states ucs,
+        nos
 
