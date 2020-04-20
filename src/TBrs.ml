@@ -46,33 +46,19 @@ let apply_trr (b:Big.t) (r:react) =
 let step b lr =
     List.fold_left (fun res r -> apply_trr b r @ res) [] lr
 let _split_into_iso_trans patt t_mapped transit_fun key_fun iso_fun =
-    let kh = Hashtbl.create (List.length t_mapped) in
-    let _ = List.iter 
-            (
-                fun (t,k) -> 
-                match Hashtbl.find_opt kh k with
-                | None -> Hashtbl.add kh k [(t,k)]
-                | Some l -> Hashtbl.add kh k ((t,k)::l) 
-            )
-            t_mapped in
     let patt_transit = transit_fun patt in
     let patt_key = key_fun patt_transit in
-    let trans_with_equal_rs_key = Hashtbl.find_opt kh patt_key
-    in
-        match trans_with_equal_rs_key with
-        | None -> ([],t_mapped)
-        | Some trans ->
             List.fold_left 
             (
                 fun  (res_eq,res_neq) (t,k)-> 
                     let checked_transit = transit_fun t.rs in
-                        if iso_fun checked_transit patt_transit then
+                        if patt_key = key_fun checked_transit && iso_fun checked_transit patt_transit then
                             (t,k)::res_eq,res_neq
                         else
                             res_eq,(t,k)::res_neq
             )
             ([],[])
-            trans;;
+            t_mapped;;
 let rec _group_based_on_iso_res_states lot transit_fun key_fun iso_fun = 
     match lot with
         | [] -> []
@@ -92,32 +78,19 @@ let _gen_semi_grouped_trans_from_states rules states transit_fun key_fun iso_fun
         states 
     |> List.flatten
 let _split_into_iso_trans_list patt gt_mapped transit_fun key_fun iso_fun =
-    let kh = Hashtbl.create (List.length gt_mapped) in
-    let _ = List.iter 
-            (
-                fun ((b,k),tl) -> 
-                    match Hashtbl.find_opt kh k with
-                    | None -> Hashtbl.add kh k [(b,k),tl]
-                    | Some l -> Hashtbl.add kh k (((b,k),tl)::l) 
-            )
-            gt_mapped in
     let patt_transit = transit_fun patt in
     let patt_key = key_fun patt_transit in
-    let trans_with_equal_rs_key = Hashtbl.find_opt kh patt_key in
-    match trans_with_equal_rs_key with
-    | None -> ([],gt_mapped)
-    | Some trans ->
         List.fold_left 
             (
                 fun  (res_eq,res_neq) ((b,k),tl)-> 
                     let checked_transit = transit_fun b in
-                    if iso_fun checked_transit patt_transit then
+                    if patt_key = key_fun checked_transit && iso_fun checked_transit patt_transit then
                         tl::res_eq,res_neq
                     else
                         res_eq,((b,k),tl)::res_neq
             )
             ([],[])
-            trans;;
+            gt_mapped;;
 let rec _merge_iso_groups losgt transit_fun key_fun iso_fun =
     match losgt with
         | [] -> []
