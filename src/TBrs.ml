@@ -226,13 +226,13 @@ let _gen_trans_and_unique_states rules ~checked ~unchecked checked_unchecked_sum
         key_fun 
         iso_fun in
         new_trans,new_states,num_of_new_states,known_unique_states
-let rec _parexplore_ss ~rules ~(max_steps:int) ~(current_step:int) ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun =
+let rec _explore_ss ~rules ~(max_steps:int) ~(current_step:int) ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun =
         if current_step < max_steps then
             match unchecked with
             | [] -> [],checked,[],current_step
             | _ ->
                 let res_trans,res_unchecked,num_of_new_unchecked_states,new_checked = _gen_trans_and_unique_states rules ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun in
-                let given_transitions,given_unique_states,given_unique_unchecked,last_reached_step = _parexplore_ss ~rules ~max_steps ~current_step:(current_step+1) ~checked:new_checked ~unchecked:res_unchecked (c_us_sum+num_of_new_unchecked_states) transit_fun key_fun iso_fun in
+                let given_transitions,given_unique_states,given_unique_unchecked,last_reached_step = _explore_ss ~rules ~max_steps ~current_step:(current_step+1) ~checked:new_checked ~unchecked:res_unchecked (c_us_sum+num_of_new_unchecked_states) transit_fun key_fun iso_fun in
                     res_trans@given_transitions,given_unique_states,given_unique_unchecked,last_reached_step 
         else
             [],checked,unchecked,current_step
@@ -242,6 +242,106 @@ let _iso d1 d2 =
     in
         Onauty.Iso.are_digraphs_iso ~check_colors:true g1 g2
 let _final_mapping_of_states los= List.map (fun (b,_,i) -> b,i) los
+let explore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
+    let transit_fun, key_fun, iso_fun = tools in
+    let s0_k = transit_fun s0 |> key_fun in
+    let checked = KeyMap.empty 
+    and current_step = 0
+    and unchecked = [s0,s0_k,0]
+    and c_us_sum = 1 in
+    let trans,cs_map,ucs,nos = _explore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun in
+    let _,cs = KeyMap.bindings cs_map |> List.split in
+        List.map (fun (t,_,isi,rsi) -> t,isi,rsi) trans ,
+        _final_mapping_of_states (List.flatten cs) ,
+        _final_mapping_of_states ucs,
+        nos
+let _pargen_semi_grouped_trans_from_states rules states transit_fun key_fun iso_fun =
+    Parmap.parfold 
+        (
+            fun (s,i) logt -> (_step_grouped_iso_res (s,i) rules transit_fun key_fun iso_fun )::logt 
+        )  
+        (Parmap.L states)
+        []
+        (fun logt1 logt2 -> List.rev_append logt1 logt2)
+    |> List.flatten
+let _parmap_init_index_of_iso_groups logt =
+    Parmap.parmapi (fun i ((b,k),tl) -> (b,k,i),List.map (fun (t,k',isi) -> (t,k',isi,i) ) tl ) (Parmap.L logt)
+let _parfilter_and_reindex_duplicates ~filter_of:rof ~filter_from:rfr transit_fun key_fun iso_fun =
+    Parmap.parfold 
+    (
+        fun (b_rfr,b_key,rfr_idx) (rest_unique,isos) -> 
+            let b_rfr_transit = transit_fun b_rfr in
+            let b_rfr_key = key_fun b_rfr_transit in
+            let b_with_equal_hash = KeyMap.find_opt b_rfr_key rof in
+                match b_with_equal_hash with
+                | None -> (b_rfr,b_key,rfr_idx)::rest_unique,isos
+                | Some l -> 
+                    let res = List.find_opt (fun (b,_,_) -> transit_fun b |> iso_fun b_rfr_transit ) l (*_find_iso_indexed_big b_rfr l transit_fun iso_fun *) (* nie zmniejszam zbioru przeszukiwan! *)
+                    in
+                        match res with
+                        | None -> (b_rfr,b_key,rfr_idx)::rest_unique,isos
+                        | Some (_,_,rof_idx) -> rest_unique,(rfr_idx,rof_idx)::isos
+    )
+    (Parmap.L rfr)
+    ([],[])
+    (fun (filtered1,iso1) (filtered2,iso2) -> List.rev_append filtered1 filtered2,List.rev_append iso1 iso2 )
+let _pargen_unique_states ~grouped_indexed_trans ~known_unique_states ~new_unchecked_propositions c_uc_sum transit_fun key_fun iso_fun = 
+    let filtered_of_all,iso_all = _parfilter_and_reindex_duplicates 
+        ~filter_of:known_unique_states 
+        ~filter_from:new_unchecked_propositions 
+        transit_fun 
+        key_fun 
+        iso_fun 
+    in 
+    let reindexed_by_all, my_new_unchecked = _apply_reindexing_exclude_rest grouped_indexed_trans iso_all in
+    let new_unchecked_states_reindexed,iso_reindexing = _regen_indexing (c_uc_sum) filtered_of_all
+    in
+        let new_trans = (_apply_reindexing my_new_unchecked iso_reindexing) |> List.rev_append reindexed_by_all
+        in
+        new_trans, 
+        new_unchecked_states_reindexed,
+        (List.length new_unchecked_states_reindexed);;
+let _pargen_trans_and_unique_states rules ~checked ~unchecked checked_unchecked_sum transit_fun key_fun iso_fun =
+    (* let checked_unchecked_sum = List.length checked + List.length unchecked
+    and *)
+    let unchecked_without_key = List.map (fun (b,_,i) -> b,i ) unchecked
+    and known_unique_states = List.fold_left 
+        (
+            fun map (b,k,i) -> 
+            match KeyMap.find_opt k map with
+            | None -> KeyMap.add k [(b,k,i)] map
+            | Some l -> KeyMap.add k ((b,k,i)::l) map
+        )
+        checked
+        unchecked in
+    let semi_grouped_trans = _pargen_semi_grouped_trans_from_states 
+        rules 
+        unchecked_without_key 
+        transit_fun 
+        key_fun 
+        iso_fun in
+    let grouped_trans = _merge_iso_groups semi_grouped_trans transit_fun key_fun iso_fun in
+    let new_unchecked_propositions,initially_indexed_trans = _parmap_init_index_of_iso_groups grouped_trans |> List.split in
+    let new_trans,new_states,num_of_new_states = _pargen_unique_states 
+        ~grouped_indexed_trans:(initially_indexed_trans |> List.flatten) 
+        ~known_unique_states 
+        ~new_unchecked_propositions 
+        checked_unchecked_sum 
+        transit_fun 
+        key_fun 
+        iso_fun in
+        new_trans,new_states,num_of_new_states,known_unique_states
+let rec _parexplore_ss ~rules ~(max_steps:int) ~(current_step:int) ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun =
+    if current_step < max_steps then
+        match unchecked with
+        | [] -> [],checked,[],current_step
+        | _ ->
+            let res_trans,res_unchecked,num_of_new_unchecked_states,new_checked = _pargen_trans_and_unique_states rules ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun in
+            let given_transitions,given_unique_states,given_unique_unchecked,last_reached_step = _parexplore_ss ~rules ~max_steps ~current_step:(current_step+1) ~checked:new_checked ~unchecked:res_unchecked (c_us_sum+num_of_new_unchecked_states) transit_fun key_fun iso_fun in
+                res_trans@given_transitions,given_unique_states,given_unique_unchecked,last_reached_step 
+    else
+        [],checked,unchecked,current_step
+    
 let parexplore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
     let transit_fun, key_fun, iso_fun = tools in
     let s0_k = transit_fun s0 |> key_fun in
@@ -255,4 +355,3 @@ let parexplore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.
         _final_mapping_of_states (List.flatten cs) ,
         _final_mapping_of_states ucs,
         nos
-
