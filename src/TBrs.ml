@@ -66,14 +66,17 @@ let rec _group_based_on_iso_res_states lot transit_fun key_fun iso_fun =
         let equal_with_t, rest' = _split_into_iso_trans t.rs rest transit_fun key_fun iso_fun in 
         let grouped_rest = _group_based_on_iso_res_states rest' transit_fun key_fun iso_fun in 
             [(t.rs,k),(t,k)::equal_with_t] |> List.rev_append grouped_rest
-let _step_grouped_iso_res state rules transit_fun key_fun iso_fun =
+let _step_grouped_iso_res (state,idx) rules transit_fun key_fun iso_fun =
     let raw_result = List.fold_left (fun res r -> apply_trr state r |> List.rev_append res) [] rules in
-    let mapped_result = List.map (fun t -> let transit_rs = transit_fun t.rs in t, key_fun transit_rs) raw_result in
-    let grouped_result = _group_based_on_iso_res_states mapped_result transit_fun key_fun iso_fun in
-        grouped_result
+    let mapped_with_key_result = List.map (fun t -> let transit_rs = transit_fun t.rs in t, key_fun transit_rs) raw_result in
+    let grouped_result = _group_based_on_iso_res_states mapped_with_key_result transit_fun key_fun iso_fun in
+    let init_indexed_result = List.map (fun ((b,k),(tl)) -> (b,k),List.map (fun (t,k) -> t,k,idx) tl ) grouped_result in
+        init_indexed_result
 let _gen_semi_grouped_trans_from_states rules states transit_fun key_fun iso_fun =
     List.fold_left 
-        (fun logt s -> (_step_grouped_iso_res s rules transit_fun key_fun iso_fun)::logt ) 
+        (
+            fun logt (s,i) -> (_step_grouped_iso_res (s,i) rules transit_fun key_fun iso_fun )::logt 
+        ) 
         [] 
         states 
     |> List.flatten
@@ -101,7 +104,7 @@ let rec _merge_iso_groups losgt transit_fun key_fun iso_fun =
                 let merged_with_me = (b,k),(tl |> List.rev_append (List.flatten equal_with_t)) in
                 merged_with_me :: merged_rest transit_fun key_fun iso_fun
 let _map_init_index_of_iso_groups logt =
-    List.mapi (fun i ((b,k),tl) -> (b,k,i),List.map (fun (t,k') -> (t,k',i,-1) ) tl ) logt
+    List.mapi (fun i ((b,k),tl) -> (b,k,i),List.map (fun (t,k',isi) -> (t,k',isi,i) ) tl ) logt
 let _apply_reindexing loit ridx =
     List.map
         (
@@ -178,7 +181,13 @@ let _apply_reindexing loit ridx =
         )
         loit
 let _gen_unique_states ~grouped_indexed_trans ~known_unique_states ~new_unchecked_propositions c_uc_sum transit_fun key_fun iso_fun = 
-    let filtered_of_all,iso_all = _filter_and_reindex_duplicates ~filter_of:known_unique_states ~filter_from:new_unchecked_propositions transit_fun key_fun iso_fun in 
+    let filtered_of_all,iso_all = _filter_and_reindex_duplicates 
+        ~filter_of:known_unique_states 
+        ~filter_from:new_unchecked_propositions 
+        transit_fun 
+        key_fun 
+        iso_fun 
+    in 
     let reindexed_by_all, my_new_unchecked = _apply_reindexing_exclude_rest grouped_indexed_trans iso_all in
     let new_unchecked_states_reindexed,iso_reindexing = _regen_indexing (c_uc_sum) filtered_of_all
     in
@@ -190,7 +199,7 @@ let _gen_unique_states ~grouped_indexed_trans ~known_unique_states ~new_unchecke
 let _gen_trans_and_unique_states rules ~checked ~unchecked checked_unchecked_sum transit_fun key_fun iso_fun =
     (* let checked_unchecked_sum = List.length checked + List.length unchecked
     and *)
-    let unchecked_without_key_and_idx = List.map (fun (b,_,_) -> b) unchecked 
+    let unchecked_without_key = List.map (fun (b,_,i) -> b,i ) unchecked 
     and known_unique_states = List.fold_left 
         (
             fun map (b,k,i) -> 
@@ -200,10 +209,22 @@ let _gen_trans_and_unique_states rules ~checked ~unchecked checked_unchecked_sum
         )
         checked
         unchecked in
-    let semi_grouped_trans = _gen_semi_grouped_trans_from_states rules unchecked_without_key_and_idx transit_fun key_fun iso_fun in
+    let semi_grouped_trans = _gen_semi_grouped_trans_from_states 
+        rules 
+        unchecked_without_key 
+        transit_fun 
+        key_fun 
+        iso_fun in
     let grouped_trans = _merge_iso_groups semi_grouped_trans transit_fun key_fun iso_fun in
     let new_unchecked_propositions,initially_indexed_trans = _map_init_index_of_iso_groups grouped_trans |> List.split in
-    let new_trans,new_states,num_of_new_states = _gen_unique_states ~grouped_indexed_trans:(initially_indexed_trans |> List.flatten) ~known_unique_states ~new_unchecked_propositions checked_unchecked_sum transit_fun key_fun iso_fun in
+    let new_trans,new_states,num_of_new_states = _gen_unique_states 
+        ~grouped_indexed_trans:(initially_indexed_trans |> List.flatten) 
+        ~known_unique_states 
+        ~new_unchecked_propositions 
+        checked_unchecked_sum 
+        transit_fun 
+        key_fun 
+        iso_fun in
         new_trans,new_states,num_of_new_states,known_unique_states
 let rec _parexplore_ss ~rules ~(max_steps:int) ~(current_step:int) ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun =
         if current_step < max_steps then
