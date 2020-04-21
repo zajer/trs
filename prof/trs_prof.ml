@@ -105,6 +105,50 @@ let [@landmark] rec group_based_on_iso_res_states lot =
             let grouped_rest = group_based_on_iso_res_states rest'
             in 
                 [t.rs,t::equal_with_t] @ grouped_rest
+let [@landmark] split_into_iso_groups_of_trans (patt:Big.t) (rest:(Big.t * t list) list) =
+    let patt_dig = Digraph.big_2_dig patt
+    in
+    let patt_key = Digraph.hash_graph patt_dig
+    and patt_graph = Dig2graph.dig_2_graph patt_dig
+    and eq = Iso.are_digraphs_iso
+    in
+        List.fold_left 
+            (
+                fun  (res_eq,res_neq) (b,tl)-> 
+                    let checked_dig = Digraph.big_2_dig b
+                    in
+                        let checked_graph = Dig2graph.dig_2_graph checked_dig
+                        in
+                            if (Digraph.hash_graph checked_dig = patt_key)[@landmark "key_check"] && (eq checked_graph patt_graph)[@landmark "equality_check"] then
+                                    (b,tl)::res_eq,res_neq
+                            else
+                                res_eq,(b,tl)::res_neq
+            )
+            ([],[])
+            rest
+let [@landmark] rec merge_grouped_based_on_iso_res_states lot = 
+    match lot with
+        | [] -> []
+        | (b,tl)::rest -> 
+        let equal_with_t, rest' = split_into_iso_groups_of_trans b rest in
+        let equal_with_t_conv = List.map (fun (_,tl) -> tl) equal_with_t |> List.flatten in 
+            let grouped_rest = merge_grouped_based_on_iso_res_states rest'
+            in 
+                [b,tl@equal_with_t_conv] @ grouped_rest
+let [@landmark] rec group_based_on_iso_res_statesV2 aot =
+    let aot_l = Array.length aot in
+    if aot_l > 200 then
+    (
+        let pivot_point =  aot_l / 2 in
+        let sub_aot1 = Array.sub aot 0 pivot_point
+        and sub_aot2 = Array.sub aot pivot_point (aot_l - pivot_point) in
+        let res1 = group_based_on_iso_res_statesV2 sub_aot1
+        and res2 = group_based_on_iso_res_statesV2 sub_aot2 in
+        merge_grouped_based_on_iso_res_states res1@res2
+    )
+    else
+        group_based_on_iso_res_states (Array.to_list aot)
+
 
 let [@landmark] split_into_iso_trans_indexed (patt:Big.t) (rest:(t*int*int) list) =
     let patt_dig = Digraph.big_2_dig patt
@@ -207,7 +251,7 @@ let [@landmark] step b lr =
 let [@landmark] step_grouped_iso_res b lr =
     let raw_result = List.fold_left (fun res r -> apply_trr b r @ res) [] lr
         in  
-            let grouped_result = group_based_on_iso_res_states raw_result
+            let grouped_result = group_based_on_iso_res_statesV2 (raw_result |> Array.of_list)
             in
                 grouped_result
 
