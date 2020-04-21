@@ -338,7 +338,7 @@ let rec _parexplore_ss ~rules ~(max_steps:int) ~(current_step:int) ~checked ~unc
         | _ ->
             let res_trans,res_unchecked,num_of_new_unchecked_states,new_checked = _pargen_trans_and_unique_states rules ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun in
             let given_transitions,given_unique_states,given_unique_unchecked,last_reached_step = _parexplore_ss ~rules ~max_steps ~current_step:(current_step+1) ~checked:new_checked ~unchecked:res_unchecked (c_us_sum+num_of_new_unchecked_states) transit_fun key_fun iso_fun in
-                res_trans@given_transitions,given_unique_states,given_unique_unchecked,last_reached_step 
+                res_trans::given_transitions,given_unique_states,given_unique_unchecked,last_reached_step 
     else
         [],checked,unchecked,current_step
     
@@ -351,7 +351,7 @@ let parexplore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.
     and c_us_sum = 1 in
     let trans,cs_map,ucs,nos = _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun in
     let _,cs = KeyMap.bindings cs_map |> List.split in
-        List.map (fun (t,_,isi,rsi) -> t,isi,rsi) trans ,
+        List.map (fun (t,_,isi,rsi) -> t,isi,rsi) (trans |> List.flatten) ,
         _final_mapping_of_states (List.flatten cs) ,
         _final_mapping_of_states ucs,
         nos
