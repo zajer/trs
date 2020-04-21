@@ -50,7 +50,7 @@ Parmap.set_default_ncores 4
 let tl,ss,uss,ms = TBrs.parexplore_ss s0 rules 300;;
 
 print_endline ("Number of transitions:" ^ ( string_of_int (List.length tl) ) );
-print_endline ("Number of unique states:" ^ ( string_of_int (List.length ss) ) );;
+print_endline ("Number of unique states:" ^ ( string_of_int (List.length (ss@uss)) ) );;
 
 RExp.export_ss_csv tl (ss@uss);;
 (*
@@ -58,6 +58,7 @@ RExp.export_ss_csv tl (ss@uss);;
     It checks whether all result states are actually unique up to isomorphism
     and if all transitions' init and result states are indexed properly.
 *)
+(*List.iter (fun (_,i) -> string_of_int i |> print_endline ) (ss@uss);;*)
 (*
 List.iteri
     (
@@ -70,12 +71,18 @@ List.iteri
                 in
                     if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                     (
-                    "Result "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
+                    let _,actual_idx_of_iso_to_init_state = List.find (fun (b,_) -> Big.equal b t.is ) (ss@uss) 
+                    and _,actual_idx_of_iso_to_res_state = List.find (fun (b,_) -> Big.equal b t.rs) (ss@uss) in
+                    "Indexation error at position:"^(string_of_int i) |> print_endline;
                     "Result components, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
+                    "Result components, init_idx:"^(string_of_int ii)^" , res_idx:"^(string_of_int ri) |> print_endline;
+                    "Expected, init_idx:"^(string_of_int actual_idx_of_iso_to_init_state)^" , res_idx:"^(string_of_int actual_idx_of_iso_to_res_state) |> print_endline;
+                    (*
                     "Actual transition init state:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
                     "Indexed transition init state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
                     "Actual transition result state:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
-                    "Indexed transition result state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;                 
+                    "Indexed transition result state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;
+                    *)
                     exit 1
                     )
     ) 
