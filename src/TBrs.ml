@@ -188,10 +188,10 @@ let _gen_unique_states ~grouped_indexed_trans ~known_unique_states ~new_unchecke
         key_fun 
         iso_fun 
     in 
-    let reindexed_by_all, my_new_unchecked = _apply_reindexing_exclude_rest grouped_indexed_trans iso_all in
+    let trans_reindexed_by_all, trans_to_new_unchecked = _apply_reindexing_exclude_rest grouped_indexed_trans iso_all in
     let new_unchecked_states_reindexed,iso_reindexing = _regen_indexing (c_uc_sum) filtered_of_all
     in
-        let new_trans = (_apply_reindexing my_new_unchecked iso_reindexing) |> List.rev_append reindexed_by_all
+        let new_trans = (_apply_reindexing trans_to_new_unchecked iso_reindexing) |> List.rev_append trans_reindexed_by_all
         in
         new_trans, 
         new_unchecked_states_reindexed,
