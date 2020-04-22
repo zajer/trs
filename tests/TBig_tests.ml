@@ -141,5 +141,4 @@ let suite =
 ]
 
 let () =
-  Py.initialize ~version:3 ();
   run_test_tt_main suite
