@@ -17,7 +17,7 @@ let readfile filename =
     in
     List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" lines ;;
 (*Change a map file to one of the uav_example_map_AxB_Cus.txt files for a different scenario. *)
-let s0_to_parse = readfile "uav_example_map_3x3_3us.txt"
+let s0_to_parse = readfile "uav_example_map_4x3_3us.txt"
 let move_lhs_to_parse = readfile "uav_example_mov_lhs.txt"
 let move_rhs_to_parse = readfile "uav_example_mov_rhs.txt"
 let estConn2AF_lhs_to_parse = readfile "uav_example_estConn2AF_lhs.txt"
@@ -56,7 +56,7 @@ let pclass = Brs.P_class [mov_react_brs;estConn1AF_react_brs;estConn2AF_react_br
 
 let explore_classic () = 
     try 
-        let _,s = Brs.bfs ~s0 ~priorities:[pclass] ~predicates:[] ~max:64 ~iter_f:(fun _ _ -> () ) in s
+        let _,s = Brs.bfs ~s0 ~priorities:[pclass] ~predicates:[] ~max:100000 ~iter_f:(fun _ _ -> () ) in s
     with
     | Brs.DEADLOCK (_,s,_) -> s
     | Brs.MAX (_,s) -> s;;
