@@ -17,7 +17,7 @@ let readfile filename =
     in
     List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" lines ;;
 (*Change a map file to one of the uav_example_map_AxB_Cus.txt files for a different scenario. *)
-let s0_to_parse = readfile "uav_rescue_example_map_2x2_2us_4cs.txt"
+let s0_to_parse = readfile "uav_rescue_example_map_2x2_4us_8cs.txt"
 let move_lhs_to_parse = readfile "uav_example_mov_lhs.txt"
 let move_rhs_to_parse = readfile "uav_example_mov_rhs.txt"
 let estConn2AF_lhs_to_parse = readfile "uav_example_estConn2AF_lhs.txt"
@@ -63,7 +63,10 @@ let tl,ss,uss,ms = TBrs.parexplore_ss s0 rules 300;;
 print_endline ("Number of transitions:" ^ ( string_of_int (List.length tl) ) );
 print_endline ("Number of unique states:" ^ ( string_of_int (List.length (ss@uss)) ) );;
 
+(*uncomment the following line to export the results to a csv file*)
+(*
 RExp.export_ss_csv tl (ss@uss);;
+*)
 (*
     Uncomment the below to perform corretness tests. 
     It checks whether all result states are actually unique up to isomorphism
