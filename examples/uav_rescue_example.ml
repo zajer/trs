@@ -17,7 +17,7 @@ let readfile filename =
     in
     List.fold_left (fun (t:string) (l:string) -> t^"\n"^l ) "" lines ;;
 (*Change a map file to one of the uav_example_map_AxB_Cus.txt files for a different scenario. *)
-let s0_to_parse = readfile "uav_rescue_example_map_2x2_4us_8cs.txt"
+let s0_to_parse = readfile "uav_rescue_example_map_3x3_4us_2cs.txt"
 let move_lhs_to_parse = readfile "uav_example_mov_lhs.txt"
 let move_rhs_to_parse = readfile "uav_example_mov_rhs.txt"
 let estConn2AF_lhs_to_parse = readfile "uav_example_estConn2AF_lhs.txt"
@@ -58,7 +58,7 @@ let civ_rescue_react = TBrs.parse_react "civ_move" ~lhs:civ_rescue_lhs ~rhs:civ_
 let rules = [mov_react;civ_mov_react;estConn1AF_react;estConn2AF_react;breConn_react;civ_rescue_react];;
 Parmap.set_default_ncores 4
 
-let tl,ss,uss,ms = TBrs.parexplore_ss s0 rules 300;;
+let tl,ss,uss,ms = TBrs.explore_ss s0 rules 300;;
 
 print_endline ("Number of transitions:" ^ ( string_of_int (List.length tl) ) );
 print_endline ("Number of unique states:" ^ ( string_of_int (List.length (ss@uss)) ) );;
