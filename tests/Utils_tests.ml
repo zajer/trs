@@ -51,5 +51,4 @@ let suite =
     "Shift codom 1">:: test_shift_iso_codom_1;
   ]
 let () =
-  Py.initialize ~version:3 ();
   run_test_tt_main suite
