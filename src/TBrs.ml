@@ -275,6 +275,22 @@ let rec _merge_iso_bigs_and_reindex_no_key_checks lobi transit_fun key_fun iso_f
             in 
                 let unique_rest,isos_rest = _merge_iso_bigs_and_reindex_no_key_checks rest' transit_fun key_fun iso_fun in
                 (patt :: unique_rest),isos::isos_rest
+let _merge_iso_bigs_and_reindex_no_key_checks_const_stack lobi transit_fun key_fun iso_fun =
+    match lobi with
+    | [] -> [],[]
+    | patt::_ -> 
+        let left_to_merge = ref lobi in
+        let curr_patt = ref patt in
+        let res_merged = ref [] in
+        let res_isos = ref [] in
+        while !left_to_merge <> [] do
+            let _, rest',isos = _split_into_iso_bigs_no_key_checks !curr_patt !left_to_merge transit_fun key_fun iso_fun in
+            res_merged := !curr_patt :: !res_merged;
+            res_isos := isos :: !res_isos;
+            left_to_merge := rest';
+            curr_patt := if List.length rest' > 0 then List.hd rest' else !curr_patt
+        done ;
+        !res_merged,!res_isos
 let _merge_iso_bigs_and_reindexV2 lobi transit_fun key_fun iso_fun =
     let kp = List.fold_left 
         (
@@ -288,7 +304,60 @@ let _merge_iso_bigs_and_reindexV2 lobi transit_fun key_fun iso_fun =
     let tmp_res = List.fold_left 
         (
             fun res (_,sub_lobi) -> 
-                (_merge_iso_bigs_and_reindex_no_key_checks sub_lobi transit_fun key_fun iso_fun) :: res
+                (_merge_iso_bigs_and_reindex_no_key_checks_const_stack sub_lobi transit_fun key_fun iso_fun) :: res
+        )
+        []
+        (KeyMap.bindings kp) in
+    List.fold_left 
+        (
+            fun (states_res,isos_res) (part_states_res,part_isos_res) -> 
+                List.append states_res part_states_res, List.append isos_res part_isos_res 
+        ) 
+        ([],[]) 
+        tmp_res
+let _chunk_array max_length arr = 
+    let arr_length = Array.length arr in
+    let num_of_chunks = (arr_length / max_length) +1 in
+    if num_of_chunks = 1 then
+        [arr]
+    else
+        (
+            List.init num_of_chunks 
+            (
+                fun i ->
+                    if i < num_of_chunks -1 then
+                        Array.sub arr (max_length*i) (max_length)
+                    else
+                        Array.sub arr (max_length*i) (arr_length - max_length*i)
+            )
+        )
+let _loa2lol loa =
+    List.map (fun arr -> Array.to_list arr) loa
+let _merge_iso_bigs_and_reindexV3 lobi transit_fun key_fun iso_fun =
+    let size_of_chunk = 100 in
+    let kp = List.fold_left 
+        (
+            fun map (b,k,res_idx,state_idx) -> 
+            match KeyMap.find_opt k map with
+            | None -> KeyMap.add k [(b,k,res_idx,state_idx)] map
+            | Some l -> KeyMap.add k ((b,k,res_idx,state_idx)::l) map
+        )
+        KeyMap.empty
+        lobi in
+    let tmp_res = List.fold_left 
+        (
+            fun res (_,sub_lobi) -> 
+                let sub_lobi_array = Array.of_list sub_lobi in
+                let loa = _chunk_array size_of_chunk sub_lobi_array in
+                let lol = _loa2lol loa in
+                let part_res = List.fold_left 
+                (
+                    fun (merged_states_with_same_key,isos) sub_lobi_chunk ->
+                        let new_merged_states,new_isos = _merge_iso_bigs_and_reindex_no_key_checks_const_stack (List.rev_append sub_lobi_chunk merged_states_with_same_key) transit_fun key_fun iso_fun in
+                        new_merged_states,List.rev_append isos new_isos
+                        
+                ) ([], []) lol in
+                part_res :: res
         )
         []
         (KeyMap.bindings kp) in
@@ -334,7 +403,7 @@ let _gen_unique_statesV2 ~grouped_isi_indexed_trans ~known_unique_states c_uc_su
     ([],0)
     grouped_isi_indexed_trans in
     let trans,states_unmerged = List.split trans_and_state_props |> (fun (t,s) -> t|>List.flatten, s|> List.flatten) in
-    let merged_states,isos_merge = _merge_iso_bigs_and_reindexV2 states_unmerged transit_fun key_fun iso_fun |> (fun (ss,isos) -> ss, List.flatten isos ) in
+    let merged_states,isos_merge = _merge_iso_bigs_and_reindexV3 states_unmerged transit_fun key_fun iso_fun |> (fun (ss,isos) -> ss, List.flatten isos ) in
     let final_states,isos_regen = _regen_indexing_extended c_uc_sum merged_states in
     let trans_tmp1 = _apply_reindexing_extended isos_merge trans in
     let trans_tmp2 = _apply_reindexing_extended isos_regen trans_tmp1 in
@@ -405,6 +474,21 @@ let rec _explore_ss ~rules ~(max_steps:int) ~(current_step:int) ~checked ~unchec
                     res_trans::given_transitions,given_unique_states,given_unique_unchecked,last_reached_step 
         else
             [],checked,unchecked,current_step
+let _explore_ss_const_stack ~rules ~(max_steps:int) ~(current_step:int) ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun =
+    let curr_step_ref = ref current_step 
+    and curr_unchecked_ref = ref unchecked
+    and curr_checked_ref = ref checked
+    and res_trans = ref [] 
+    and num_of_checked_and_unchecked_ref = ref c_us_sum in
+    while !curr_step_ref < max_steps && !curr_unchecked_ref <> [] do
+        let new_trans,new_unchecked,num_of_new_unchecked_states,new_checked = _gen_trans_and_unique_statesV2 rules ~checked:!curr_checked_ref ~unchecked:!curr_unchecked_ref !num_of_checked_and_unchecked_ref transit_fun key_fun iso_fun in
+        curr_unchecked_ref := new_unchecked;
+        curr_checked_ref := new_checked;
+        num_of_checked_and_unchecked_ref := (!num_of_checked_and_unchecked_ref+num_of_new_unchecked_states);
+        curr_step_ref := ( !curr_step_ref + 1);
+        res_trans := new_trans :: !res_trans 
+    done;
+        !res_trans,!curr_checked_ref,!curr_unchecked_ref,!curr_step_ref
 let _iso d1 d2 = 
     let g1 = Digraph.dig_2_graph d1 
     and g2 = Digraph.dig_2_graph d2
@@ -418,7 +502,7 @@ let explore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) 
     and current_step = 0
     and unchecked = [s0,s0_k,0]
     and c_us_sum = 1 in
-    let trans,cs_map,ucs,nos = _explore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun in
+    let trans,cs_map,ucs,nos = _explore_ss_const_stack ~rules:rules ~max_steps ~current_step ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun in
     let _,cs = KeyMap.bindings cs_map |> List.split in
         List.map (fun (t,_,isi,rsi) -> t,isi,rsi) (trans|>List.flatten) ,
         _final_mapping_of_states (List.flatten cs) ,
@@ -553,7 +637,7 @@ let _pargen_unique_statesV3 ~grouped_isi_indexed_trans ~known_unique_states c_uc
     ([],0)
     grouped_isi_indexed_trans in
     let trans,states_unmerged = List.split trans_and_state_props |> (fun (t,s) -> t|>List.flatten, s|> List.flatten) in
-    let merged_states,isos_merge = _merge_iso_bigs_and_reindexV2 states_unmerged transit_fun key_fun iso_fun |> (fun (ss,isos) -> ss, List.flatten isos ) in
+    let merged_states,isos_merge = _merge_iso_bigs_and_reindexV3 states_unmerged transit_fun key_fun iso_fun |> (fun (ss,isos) -> ss, List.flatten isos ) in
     let final_states,isos_regen = _regen_indexing_extended c_uc_sum merged_states in
     let trans_tmp1 = _apply_reindexing_extended isos_merge trans in
     let trans_tmp2 = _apply_reindexing_extended isos_regen trans_tmp1 in
@@ -624,7 +708,21 @@ let rec _parexplore_ss ~rules ~(max_steps:int) ~(current_step:int) ~checked ~unc
                 res_trans::given_transitions,given_unique_states,given_unique_unchecked,last_reached_step 
     else
         [],checked,unchecked,current_step
-    
+let _parexplore_ss_const_stack ~rules ~(max_steps:int) ~(current_step:int) ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun =
+    let curr_step_ref = ref current_step 
+    and curr_unchecked_ref = ref unchecked
+    and curr_checked_ref = ref checked
+    and res_trans = ref [] 
+    and num_of_checked_and_unchecked_ref = ref c_us_sum in
+    while !curr_step_ref < max_steps && !curr_unchecked_ref <> [] do
+        let new_trans,new_unchecked,num_of_new_unchecked_states,new_checked = _pargen_trans_and_unique_statesV2 rules ~checked:!curr_checked_ref ~unchecked:!curr_unchecked_ref !num_of_checked_and_unchecked_ref transit_fun key_fun iso_fun in
+        curr_unchecked_ref := new_unchecked;
+        curr_checked_ref := new_checked;
+        num_of_checked_and_unchecked_ref := (!num_of_checked_and_unchecked_ref+num_of_new_unchecked_states);
+        curr_step_ref := ( !curr_step_ref + 1);
+        res_trans := new_trans :: !res_trans 
+    done;
+        !res_trans,!curr_checked_ref,!curr_unchecked_ref,!curr_step_ref 
 let parexplore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
     let transit_fun, key_fun, iso_fun = tools in
     let s0_k = transit_fun s0 |> key_fun in
@@ -632,7 +730,7 @@ let parexplore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.
     and current_step = 0
     and unchecked = [s0,s0_k,0]
     and c_us_sum = 1 in
-    let trans,cs_map,ucs,nos = _parexplore_ss ~rules:rules ~max_steps ~current_step ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun in
+    let trans,cs_map,ucs,nos = _parexplore_ss_const_stack ~rules:rules ~max_steps ~current_step ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun in
     let _,cs = KeyMap.bindings cs_map |> List.split in
         List.map (fun (t,_,isi,rsi) -> t,isi,rsi) (trans |> List.flatten) ,
         _final_mapping_of_states (List.flatten cs) ,
