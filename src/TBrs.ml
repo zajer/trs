@@ -344,9 +344,9 @@ let _merge_iso_bigs_and_reindexV3 lobi transit_fun key_fun iso_fun =
         )
         KeyMap.empty
         lobi in
-    let tmp_res = List.fold_left 
+    let tmp_res = List.map
         (
-            fun res (_,sub_lobi) -> 
+            fun (_,sub_lobi) -> 
                 let sub_lobi_array = Array.of_list sub_lobi in
                 let loa = _chunk_array size_of_chunk sub_lobi_array in
                 let lol = _loa2lol loa in
@@ -357,9 +357,8 @@ let _merge_iso_bigs_and_reindexV3 lobi transit_fun key_fun iso_fun =
                         new_merged_states,List.rev_append isos new_isos
                         
                 ) ([], []) lol in
-                part_res :: res
+                part_res
         )
-        []
         (KeyMap.bindings kp) in
     List.fold_left 
         (
@@ -618,9 +617,9 @@ let _pargen_unique_statesV2 ~grouped_isi_indexed_trans ~known_unique_states c_uc
     let final_trans = List.map (fun (t,k,isi,rsi,_) -> t,k,isi,rsi) trans_tmp2 in
     final_trans,final_states,List.length merged_states
 let _pargen_unique_statesV3 ~grouped_isi_indexed_trans ~known_unique_states c_uc_sum transit_fun key_fun iso_fun = 
-    let trans_and_state_props,_ = List.fold_left 
+    let trans_and_state_props = List.mapi 
     (
-    fun (res,res_idx) semi_grouped_list ->
+    fun res_idx semi_grouped_list ->
             let local_new_unchecked_propositions,locally_initially_indexed_trans = _map_init_index_of_iso_groups semi_grouped_list |> List.split in
             let local_new_trans,local_new_states,_ = _gen_unique_states
                 ~grouped_indexed_trans:(locally_initially_indexed_trans |> List.flatten) 
@@ -632,9 +631,8 @@ let _pargen_unique_statesV3 ~grouped_isi_indexed_trans ~known_unique_states c_uc
                 iso_fun in
             let local_new_trans_res_idx = List.map (fun (t,k,isi,rsi) -> t,k,isi,rsi,res_idx ) local_new_trans
             and local_new_states_res_idx = List.map (fun (b,k,i) -> b,k,i,res_idx ) local_new_states in
-            (local_new_trans_res_idx,local_new_states_res_idx)::res,res_idx+1
+            (local_new_trans_res_idx,local_new_states_res_idx)
     ) 
-    ([],0)
     grouped_isi_indexed_trans in
     let trans,states_unmerged = List.split trans_and_state_props |> (fun (t,s) -> t|>List.flatten, s|> List.flatten) in
     let merged_states,isos_merge = _merge_iso_bigs_and_reindexV3 states_unmerged transit_fun key_fun iso_fun |> (fun (ss,isos) -> ss, List.flatten isos ) in
