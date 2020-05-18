@@ -172,13 +172,12 @@ let _find_iso_indexed_big patt loib transit_fun iso_fun =
                 None
             else
                 Some (found,rest)
-let _filter_and_reindex_duplicates ~filter_of:rof ~filter_from:rfr transit_fun key_fun iso_fun =
+let _filter_and_reindex_duplicates ~filter_of:rof ~filter_from:rfr transit_fun _ iso_fun =
     List.fold_left 
     (
         fun (rest_unique,isos) (b_rfr,b_key,rfr_idx) -> 
             let b_rfr_transit = transit_fun b_rfr in
-            let b_rfr_key = key_fun b_rfr_transit in
-            let b_with_equal_hash = KeyMap.find_opt b_rfr_key rof in
+            let b_with_equal_hash = KeyMap.find_opt b_key rof in
                 match b_with_equal_hash with
                 | None -> (b_rfr,b_key,rfr_idx)::rest_unique,isos
                 | Some l -> 
@@ -190,6 +189,33 @@ let _filter_and_reindex_duplicates ~filter_of:rof ~filter_from:rfr transit_fun k
     )
     ([],[])
     rfr
+let _filter_and_reindex_duplicatesV2 ~filter_of:rof ~filter_from:rfr transit_fun _ iso_fun =
+        let converted = List.map
+        (
+            fun (b_rfr,b_key,rfr_idx) ->
+                let b_rfr_transit = transit_fun b_rfr in
+                let b_with_equal_hash = KeyMap.find_opt b_key rof in
+                    match b_with_equal_hash with
+                    | None -> ( Some (b_rfr,b_key,rfr_idx), None)
+                    | Some l -> 
+                        let res = List.find_opt (fun (b,_,_) -> transit_fun b |> iso_fun b_rfr_transit ) l (*_find_iso_indexed_big b_rfr l transit_fun iso_fun *) (* nie zmniejszam zbioru przeszukiwan! *)
+                        in
+                            match res with
+                            | None -> ( Some (b_rfr,b_key,rfr_idx) ,None )
+                            | Some (_,_,rof_idx) -> ( None , Some (rfr_idx,rof_idx) )
+        )
+        rfr |>
+        List.fold_left (
+            fun (unique_res,iso_res) (unique,iso)-> 
+                match unique,iso with 
+                | Some s, None -> s::unique_res,iso_res
+                | None , Some i -> unique_res,i::iso_res
+                | None, None -> failwith "filter_and_reindes-None None"
+                | Some _, Some _ -> failwith "filter_and_reindes-Some Some"
+        )
+        ([],[]) in
+        converted
+        
 let _apply_reindexing_exclude_rest loit ridx =
     List.fold_left
         (
@@ -218,7 +244,7 @@ let _apply_reindexing loit ridx =
         )
         loit
 let _gen_unique_states ~grouped_indexed_trans ~known_unique_states ~new_unchecked_propositions c_uc_sum transit_fun key_fun iso_fun = 
-    let filtered_of_all,iso_all = _filter_and_reindex_duplicates 
+    let filtered_of_all,iso_all = _filter_and_reindex_duplicatesV2 
         ~filter_of:known_unique_states 
         ~filter_from:new_unchecked_propositions 
         transit_fun 
@@ -401,7 +427,7 @@ let _gen_unique_statesV2 ~grouped_isi_indexed_trans ~known_unique_states c_uc_su
     ) 
     grouped_isi_indexed_trans in
     let trans,states_unmerged = List.split trans_and_state_props |> (fun (t,s) -> t|>List.flatten, s|> List.flatten) in
-    let merged_states,isos_merge = _merge_iso_bigs_and_reindexV3 states_unmerged transit_fun key_fun iso_fun |> (fun (ss,isos) -> ss, List.flatten isos ) in
+    let merged_states,isos_merge = _merge_iso_bigs_and_reindexV2 states_unmerged transit_fun key_fun iso_fun |> (fun (ss,isos) -> ss, List.flatten isos ) in
     let final_states,isos_regen = _regen_indexing_extended c_uc_sum merged_states in
     let trans_tmp1 = _apply_reindexing_extended isos_merge trans in
     let trans_tmp2 = _apply_reindexing_extended isos_regen trans_tmp1 in
@@ -516,13 +542,12 @@ let _pargen_semi_grouped_trans_from_states rules states transit_fun key_fun iso_
         (fun logt1 logt2 -> List.rev_append logt1 logt2)
 let _parmap_init_index_of_iso_groups logt =
     Parmap.parmapi (fun i ((b,k),tl) -> (b,k,i),List.map (fun (t,k',isi) -> (t,k',isi,i) ) tl ) (Parmap.L logt)
-let _parfilter_and_reindex_duplicates ~filter_of:rof ~filter_from:rfr transit_fun key_fun iso_fun =
+let _parfilter_and_reindex_duplicates ~filter_of:rof ~filter_from:rfr transit_fun _ iso_fun =
     Parmap.parfold 
     (
         fun (b_rfr,b_key,rfr_idx) (rest_unique,isos) -> 
             let b_rfr_transit = transit_fun b_rfr in
-            let b_rfr_key = key_fun b_rfr_transit in
-            let b_with_equal_hash = KeyMap.find_opt b_rfr_key rof in
+            let b_with_equal_hash = KeyMap.find_opt b_key rof in
                 match b_with_equal_hash with
                 | None -> (b_rfr,b_key,rfr_idx)::rest_unique,isos
                 | Some l -> 
@@ -654,7 +679,7 @@ let _pargen_unique_statesV3 ~grouped_isi_indexed_trans ~known_unique_states c_uc
     ) 
     grouped_isi_indexed_trans in
     let trans,states_unmerged = List.split trans_and_state_props |> (fun (t,s) -> t|>List.flatten, s|> List.flatten) in
-    let merged_states,isos_merge = _merge_iso_bigs_and_reindexV3 states_unmerged transit_fun key_fun iso_fun |> (fun (ss,isos) -> ss, List.flatten isos ) in
+    let merged_states,isos_merge = _merge_iso_bigs_and_reindexV2 states_unmerged transit_fun key_fun iso_fun |> (fun (ss,isos) -> ss, List.flatten isos ) in
     let final_states,isos_regen = _regen_indexing_extended c_uc_sum merged_states in
     let trans_tmp1 = _apply_reindexing_extended isos_merge trans in
     let trans_tmp2 = _apply_reindexing_extended isos_regen trans_tmp1 in
