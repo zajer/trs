@@ -13,7 +13,36 @@ let trans_to_string t =
         and residue_fun = residue_fun_label^"\n"^(Fun.to_string t.rf)
         and participants = participant_label^"\n"^(Iso.to_string t.p)
         in
-            (String.concat "\n" [init_state;res_state;residue_fun;participants])
+            (String.concat "\n" [init_state;res_state;residue_fun;participants]);;
+let react_label_header = "react label"
+let state_index_header = "state index"
+let state_header = "state representation"
+let init_state_index_header = "init state idx"
+let res_state_index_header = "res state idx"
+let participant_header = "init state 2 react_lhs iso"
+let residue_header = "residue of init in res state"
+let res_state = "res state actual representation"
+let trans_header = [init_state_index_header;res_state_index_header;react_label_header;participant_header;residue_header;res_state] 
+and states_header = [state_index_header;state_header] 
+let transistions_to_losl its = 
+    let trans_rest = List.fold_left 
+        (
+            fun res (t,ii,ri) -> 
+                let isi = string_of_int ii
+                and rsi = string_of_int ri
+                and rl = t.rl
+                and p = (Iso.to_string t.p)
+                and rf = (Fun.to_string t.rf)
+                and rs = (Big.to_string t.rs)
+                in
+                    let new_row = [isi;rsi;rl;p;rf;rs]
+                    in
+                        [new_row]@res
+        ) 
+        [] 
+        its
+        in
+            trans_rest
 let is_site_mapping_function_correct f_sm ~(lhs:Big.t) ~(rhs:Big.t) =
     let is_fsm_total = IntSet.equal (IntSet.of_int (rhs.p.s) ) (Fun.dom f_sm)
     and is_fsm_to_not_exceeding = IntSet.max_elt (Fun.codom f_sm) < Some (lhs.p.s)
@@ -513,12 +542,36 @@ let _explore_ss_const_stack ~rules ~(max_steps:int) ~(current_step:int) ~checked
         res_trans := new_trans :: !res_trans 
     done;
         !res_trans,!curr_checked_ref,!curr_unchecked_ref,!curr_step_ref
+let _append_trans_csv ?(first_time=false) trans file =
+    let out_channel = open_out_gen [Open_creat; Open_append] 666 file |> Csv.to_channel in
+    let transitions = transistions_to_losl trans in
+    let content = if first_time then trans_header :: transitions else transitions in
+    Csv.output_all out_channel content;
+    Csv.close_out out_channel
+let _unmap_key_of_result_state trans =
+    List.map (fun (t,_,isi,rsi) -> t,isi,rsi) trans
+let _explore_ss_const_stack_slim ~rules ~(max_steps:int) ~(current_step:int) ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun trans_file =
+    let curr_step_ref = ref current_step 
+    and curr_unchecked_ref = ref unchecked
+    and curr_checked_ref = ref checked
+    and res_trans_count = ref 0  
+    and num_of_checked_and_unchecked_ref = ref c_us_sum in
+    while !curr_step_ref < max_steps && !curr_unchecked_ref <> [] do
+        let new_trans,new_unchecked,num_of_new_unchecked_states,new_checked = _gen_trans_and_unique_statesV2 rules ~checked:!curr_checked_ref ~unchecked:!curr_unchecked_ref !num_of_checked_and_unchecked_ref transit_fun key_fun iso_fun in
+        curr_unchecked_ref := new_unchecked;
+        curr_checked_ref := new_checked;
+        num_of_checked_and_unchecked_ref := (!num_of_checked_and_unchecked_ref+num_of_new_unchecked_states);
+        curr_step_ref := ( !curr_step_ref + 1);
+        _append_trans_csv ~first_time:(!curr_step_ref = 0 ) (new_trans |> _unmap_key_of_result_state ) trans_file ;
+        res_trans_count := !res_trans_count + List.length new_trans
+    done;
+        !res_trans_count,!curr_checked_ref,!curr_unchecked_ref,!curr_step_ref
 let _iso d1 d2 = 
     let g1 = Digraph.dig_2_graph d1 
     and g2 = Digraph.dig_2_graph d2
     in
         Onauty.Iso.are_digraphs_iso ~check_colors:true g1 g2
-let _final_mapping_of_states los= List.map (fun (b,_,i) -> b,i) los
+let _final_unmapping_of_states los= List.map (fun (b,_,i) -> b,i) los
 let explore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
     let transit_fun, key_fun, iso_fun = tools in
     let s0_k = transit_fun s0 |> key_fun in
@@ -529,8 +582,21 @@ let explore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) 
     let trans,cs_map,ucs,nos = _explore_ss_const_stack ~rules:rules ~max_steps ~current_step ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun in
     let _,cs = KeyMap.bindings cs_map |> List.split in
         List.map (fun (t,_,isi,rsi) -> t,isi,rsi) (trans|>List.flatten) ,
-        _final_mapping_of_states (List.flatten cs) ,
-        _final_mapping_of_states ucs,
+        _final_unmapping_of_states (List.flatten cs) ,
+        _final_unmapping_of_states ucs,
+        nos
+let explore_ss_slim ?(trans_file_name=(string_of_float (Unix.time ()))^"csv" ) ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
+    let transit_fun, key_fun, iso_fun = tools in
+    let s0_k = transit_fun s0 |> key_fun in
+    let checked = KeyMap.empty 
+    and current_step = 0
+    and unchecked = [s0,s0_k,0]
+    and c_us_sum = 1 in
+    let num_of_trans,cs_map,ucs,nos = _explore_ss_const_stack_slim ~rules:rules ~max_steps ~current_step ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun trans_file_name in
+    let _,cs = KeyMap.bindings cs_map |> List.split in
+        num_of_trans ,
+        _final_unmapping_of_states (List.flatten cs) ,
+        _final_unmapping_of_states ucs,
         nos
 let _pargen_semi_grouped_trans_from_states rules states transit_fun key_fun iso_fun =
     Parmap.parfold 
@@ -732,7 +798,7 @@ let _pargen_trans_and_unique_statesV2 rules ~checked ~unchecked checked_unchecke
         transit_fun 
         key_fun 
         iso_fun in
-    let new_trans,new_states,num_of_new_states = _pargen_unique_statesV3 
+    let new_trans,new_states,num_of_new_states = _pargen_unique_statesV2' 
         ~grouped_isi_indexed_trans:semi_grouped_trans
         ~known_unique_states  
         checked_unchecked_sum 
@@ -750,6 +816,22 @@ let rec _parexplore_ss ~rules ~(max_steps:int) ~(current_step:int) ~checked ~unc
                 res_trans::given_transitions,given_unique_states,given_unique_unchecked,last_reached_step 
     else
         [],checked,unchecked,current_step
+let _parexplore_ss_const_stack_slim ~rules ~(max_steps:int) ~(current_step:int) ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun trans_file =
+    let curr_step_ref = ref current_step 
+    and curr_unchecked_ref = ref unchecked
+    and curr_checked_ref = ref checked
+    and res_trans_count = ref 0  
+    and num_of_checked_and_unchecked_ref = ref c_us_sum in
+    while !curr_step_ref < max_steps && !curr_unchecked_ref <> [] do
+        let new_trans,new_unchecked,num_of_new_unchecked_states,new_checked = _pargen_trans_and_unique_statesV2 rules ~checked:!curr_checked_ref ~unchecked:!curr_unchecked_ref !num_of_checked_and_unchecked_ref transit_fun key_fun iso_fun in
+        curr_unchecked_ref := new_unchecked;
+        curr_checked_ref := new_checked;
+        num_of_checked_and_unchecked_ref := (!num_of_checked_and_unchecked_ref+num_of_new_unchecked_states);
+        curr_step_ref := ( !curr_step_ref + 1);
+        _append_trans_csv ~first_time:(!curr_step_ref = 0 ) (new_trans |> _unmap_key_of_result_state ) trans_file ;
+        res_trans_count := !res_trans_count + List.length new_trans
+    done;
+        !res_trans_count,!curr_checked_ref,!curr_unchecked_ref,!curr_step_ref
 let _parexplore_ss_const_stack ~rules ~(max_steps:int) ~(current_step:int) ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun =
     let curr_step_ref = ref current_step 
     and curr_unchecked_ref = ref unchecked
@@ -775,6 +857,19 @@ let parexplore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.
     let trans,cs_map,ucs,nos = _parexplore_ss_const_stack ~rules:rules ~max_steps ~current_step ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun in
     let _,cs = KeyMap.bindings cs_map |> List.split in
         List.map (fun (t,_,isi,rsi) -> t,isi,rsi) (trans |> List.flatten) ,
-        _final_mapping_of_states (List.flatten cs) ,
-        _final_mapping_of_states ucs,
+        _final_unmapping_of_states (List.flatten cs) ,
+        _final_unmapping_of_states ucs,
+        nos
+let parexplore_ss_slim ?(trans_file_name= (string_of_float (Unix.time ()))^"csv" ) ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
+    let transit_fun, key_fun, iso_fun = tools in
+    let s0_k = transit_fun s0 |> key_fun in
+    let checked = KeyMap.empty 
+    and current_step = 0
+    and unchecked = [s0,s0_k,0]
+    and c_us_sum = 1 in
+    let num_of_trans,cs_map,ucs,nos = _parexplore_ss_const_stack_slim ~rules:rules ~max_steps ~current_step ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun trans_file_name in
+    let _,cs = KeyMap.bindings cs_map |> List.split in
+        num_of_trans ,
+        _final_unmapping_of_states (List.flatten cs) ,
+        _final_unmapping_of_states ucs,
         nos
