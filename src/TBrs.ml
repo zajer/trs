@@ -14,16 +14,16 @@ let trans_to_string t =
         and participants = participant_label^"\n"^(Iso.to_string t.p)
         in
             (String.concat "\n" [init_state;res_state;residue_fun;participants]);;
-let react_label_header = "react label"
-let state_index_header = "state index"
-let state_header = "state representation"
-let init_state_index_header = "init state idx"
-let res_state_index_header = "res state idx"
-let participant_header = "init state 2 react_lhs iso"
-let residue_header = "residue of init in res state"
-let res_state = "res state actual representation"
-let trans_header = [init_state_index_header;res_state_index_header;react_label_header;participant_header;residue_header;res_state] 
-and states_header = [state_index_header;state_header] 
+let _REACT_LABEL_HEADER = "react label"
+let _STATE_INDEX_HEADER = "state index"
+let _STATE_HEADER = "state representation"
+let _INIT_STATE_INDEX_HEADER = "init state idx"
+let _RES_STATE_INDEX_HEADER = "res state idx"
+let _PARTICIPANT_HEADER = "init state 2 react_lhs iso"
+let _RESIDUE_HEADER = "residue of init in res state"
+let _RES_STATE_HEADER = "res state actual representation"
+let trans_header = [_INIT_STATE_INDEX_HEADER;_RES_STATE_INDEX_HEADER;_REACT_LABEL_HEADER;_PARTICIPANT_HEADER;_RESIDUE_HEADER;_RES_STATE_HEADER] 
+and states_header = [_STATE_INDEX_HEADER;_STATE_HEADER] 
 let transistions_to_losl its = 
     let trans_rest = List.fold_left 
         (
@@ -43,6 +43,21 @@ let transistions_to_losl its =
         its
         in
             trans_rest
+let states_to_losl ius =
+    let states_rest = List.fold_left
+    (
+        fun res (b,i) ->
+            let state = Big.to_string b
+            and index = string_of_int i
+            in
+                let new_row = [index;state]
+                in
+                    [new_row]@res
+    )
+    []
+    ius
+    in
+        states_rest   
 let is_site_mapping_function_correct f_sm ~(lhs:Big.t) ~(rhs:Big.t) =
     let is_fsm_total = IntSet.equal (IntSet.of_int (rhs.p.s) ) (Fun.dom f_sm)
     and is_fsm_to_not_exceeding = IntSet.max_elt (Fun.codom f_sm) < Some (lhs.p.s)
