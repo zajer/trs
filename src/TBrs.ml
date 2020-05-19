@@ -303,19 +303,6 @@ let _gen_unique_states ~grouped_indexed_trans ~known_unique_states ~new_unchecke
         new_trans, 
         new_unchecked_states_reindexed,
         (List.length new_unchecked_states_reindexed);;
-let _split_into_iso_bigs (patt,patt_key,patt_idx,patt_res_idx) lo_big_key_idx transit_fun key_fun iso_fun=
-    let patt_transit = transit_fun patt in
-        List.fold_left 
-            (
-                fun  (res_eq,res_neq,isos) (b,k,idx,res_idx)-> 
-                    let checked_transit = transit_fun b in
-                    if patt_key = key_fun checked_transit && iso_fun checked_transit patt_transit then
-                        (b,k,idx,res_idx)::res_eq,res_neq,(res_idx,patt_res_idx,idx,patt_idx)::isos
-                    else
-                        res_eq,(b,k,idx,res_idx)::res_neq,isos
-            )
-            ([],[],[])
-            lo_big_key_idx;;
 let _split_into_iso_bigs_no_key_checks (patt,_,patt_idx,patt_res_idx) lo_big_key_idx transit_fun _ iso_fun=
 let patt_transit = transit_fun patt in
     List.fold_left 
@@ -329,14 +316,6 @@ let patt_transit = transit_fun patt in
         )
         ([],[],[])
         lo_big_key_idx;;
-let rec _merge_iso_bigs_and_reindex lobi transit_fun key_fun iso_fun =
-    match lobi with
-        | [] -> [],[]
-        | patt::rest -> 
-            let _, rest',isos = _split_into_iso_bigs patt rest transit_fun key_fun iso_fun
-            in 
-                let unique_rest,isos_rest = _merge_iso_bigs_and_reindex rest' transit_fun key_fun iso_fun in
-                (patt :: unique_rest),isos::isos_rest
 let rec _merge_iso_bigs_and_reindex_no_key_checks lobi transit_fun key_fun iso_fun =
     match lobi with
         | [] -> [],[]
@@ -452,31 +431,6 @@ let _regen_indexing_extended shift indexed_states_to_regen =
     let iso = List.map2 (fun (_,_,oi,res_idx) (_,_,ri) -> (res_idx,res_idx,oi,ri)) indexed_states_to_regen indexing 
     in
         indexing,iso
-let _gen_unique_statesV2 ~grouped_isi_indexed_trans ~known_unique_states c_uc_sum transit_fun key_fun iso_fun = 
-    let trans_and_state_props = List.mapi
-    (
-    fun res_idx semi_grouped_list ->
-            let local_new_unchecked_propositions,locally_initially_indexed_trans = _map_init_index_of_iso_groups semi_grouped_list |> List.split in
-            let local_new_trans,local_new_states,_ = _gen_unique_states
-                ~grouped_indexed_trans:(locally_initially_indexed_trans |> List.flatten) 
-                ~known_unique_states 
-                ~new_unchecked_propositions:local_new_unchecked_propositions
-                c_uc_sum
-                transit_fun 
-                key_fun 
-                iso_fun in
-            let local_new_trans_res_idx = List.map (fun (t,k,isi,rsi) -> t,k,isi,rsi,res_idx ) local_new_trans
-            and local_new_states_res_idx = List.map (fun (b,k,i) -> b,k,i,res_idx ) local_new_states in
-            (local_new_trans_res_idx,local_new_states_res_idx)
-    ) 
-    grouped_isi_indexed_trans in
-    let trans,states_unmerged = List.split trans_and_state_props |> (fun (t,s) -> t|>List.flatten, s|> List.flatten) in
-    let merged_states,isos_merge = _merge_iso_bigs_and_reindexV2 states_unmerged transit_fun key_fun iso_fun |> (fun (ss,isos) -> ss, List.flatten isos ) in
-    let final_states,isos_regen = _regen_indexing_extended c_uc_sum merged_states in
-    let trans_tmp1 = _apply_reindexing_extended isos_merge trans in
-    let trans_tmp2 = _apply_reindexing_extended isos_regen trans_tmp1 in
-    let final_trans = List.map (fun (t,k,isi,rsi,_) -> t,k,isi,rsi) trans_tmp2 in
-    final_trans,final_states,List.length merged_states
 let _generic_gen_unique_statesV2 fun_mapi fun_mapi_input fun_merge_iso_bigs_and_reindes ~grouped_isi_indexed_trans ~known_unique_states c_uc_sum transit_fun key_fun iso_fun = 
     let trans_and_state_props = fun_mapi
     (
@@ -502,36 +456,6 @@ let _generic_gen_unique_statesV2 fun_mapi fun_mapi_input fun_merge_iso_bigs_and_
     let trans_tmp2 = _apply_reindexing_extended isos_regen trans_tmp1 in
     let final_trans = List.map (fun (t,k,isi,rsi,_) -> t,k,isi,rsi) trans_tmp2 in
     final_trans,final_states,List.length merged_states
-let _gen_trans_and_unique_states rules ~checked ~unchecked checked_unchecked_sum transit_fun key_fun iso_fun =
-    (* let checked_unchecked_sum = List.length checked + List.length unchecked
-    and *)
-    let unchecked_without_key = List.map (fun (b,_,i) -> b,i ) unchecked 
-    and known_unique_states = List.fold_left 
-        (
-            fun map (b,k,i) -> 
-            match KeyMap.find_opt k map with
-            | None -> KeyMap.add k [(b,k,i)] map
-            | Some l -> KeyMap.add k ((b,k,i)::l) map
-        )
-        checked
-        unchecked in
-    let semi_grouped_trans = _gen_semi_grouped_trans_from_states 
-        rules 
-        unchecked_without_key 
-        transit_fun 
-        key_fun 
-        iso_fun in
-    let grouped_trans = _merge_iso_groups (semi_grouped_trans |> List.flatten) transit_fun key_fun iso_fun in
-    let new_unchecked_propositions,initially_indexed_trans = _map_init_index_of_iso_groups grouped_trans |> List.split in
-    let new_trans,new_states,num_of_new_states = _gen_unique_states 
-        ~grouped_indexed_trans:(initially_indexed_trans |> List.flatten) 
-        ~known_unique_states 
-        ~new_unchecked_propositions 
-        checked_unchecked_sum 
-        transit_fun 
-        key_fun 
-        iso_fun in
-        new_trans,new_states,num_of_new_states,known_unique_states
 let _generic_gen_trans_and_unique_statesV2 fun_gen_semi_grouped_trans_from_states fun_gen_unique_states rules ~checked ~unchecked checked_unchecked_sum transit_fun key_fun iso_fun =
     let unchecked_without_key = List.map (fun (b,_,i) -> b,i ) unchecked 
     and known_unique_states = List.fold_left 
@@ -711,7 +635,7 @@ let _parmerge_iso_bigs_and_reindexV2 lobi transit_fun key_fun iso_fun =
     let tmp_res = Parmap.parfold
         (
             fun (_,sub_lobi) res  -> 
-                (_merge_iso_bigs_and_reindex sub_lobi transit_fun key_fun iso_fun) :: res
+                (_merge_iso_bigs_and_reindex_no_key_checks sub_lobi transit_fun key_fun iso_fun) :: res
         )
         (Parmap.L (KeyMap.bindings kp) ) 
         [] 
@@ -725,114 +649,6 @@ let _parmerge_iso_bigs_and_reindexV2 lobi transit_fun key_fun iso_fun =
         ) 
         ([],[]) 
         tmp_res
-    
-let _pargen_unique_statesV2 ~grouped_isi_indexed_trans ~known_unique_states c_uc_sum transit_fun key_fun iso_fun = 
-    let grouped_isi_indexed_trans_arr = Array.of_list grouped_isi_indexed_trans in
-    let trans_and_state_props = Parmap.parmapi 
-    (
-    fun res_idx _ ->
-            let semi_grouped_list = Array.get grouped_isi_indexed_trans_arr res_idx in
-            let local_new_unchecked_propositions,locally_initially_indexed_trans = _map_init_index_of_iso_groups semi_grouped_list |> List.split in
-            let local_new_trans,local_new_states,_ = _gen_unique_states
-                ~grouped_indexed_trans:(locally_initially_indexed_trans |> List.flatten) 
-                ~known_unique_states 
-                ~new_unchecked_propositions:local_new_unchecked_propositions
-                c_uc_sum
-                transit_fun 
-                key_fun 
-                iso_fun in
-            let local_new_trans_res_idx = List.map (fun (t,k,isi,rsi) -> t,k,isi,rsi,res_idx ) local_new_trans
-            and local_new_states_res_idx = List.map (fun (b,k,i) -> b,k,i,res_idx ) local_new_states in
-            (local_new_trans_res_idx,local_new_states_res_idx)
-    ) 
-    (Parmap.A (Array.init (Array.length grouped_isi_indexed_trans_arr) (fun _ -> ()) ) ) in
-    let trans,states_unmerged = List.split trans_and_state_props |> (fun (t,s) -> t|>List.flatten, s|> List.flatten) in
-    let merged_states,isos_merge = _merge_iso_bigs_and_reindexV3 states_unmerged transit_fun key_fun iso_fun |> (fun (ss,isos) -> ss, List.flatten isos ) in
-    let final_states,isos_regen = _regen_indexing_extended c_uc_sum merged_states in
-    let trans_tmp1 = _apply_reindexing_extended isos_merge trans in
-    let trans_tmp2 = _apply_reindexing_extended isos_regen trans_tmp1 in
-    let final_trans = List.map (fun (t,k,isi,rsi,_) -> t,k,isi,rsi) trans_tmp2 in
-    final_trans,final_states,List.length merged_states
-let _pargen_unique_statesV2' ~grouped_isi_indexed_trans ~known_unique_states c_uc_sum transit_fun key_fun iso_fun = 
-    let trans_and_state_props = Parmap.parmapi 
-    (
-    fun res_idx semi_grouped_list ->
-            let local_new_unchecked_propositions,locally_initially_indexed_trans = _map_init_index_of_iso_groups semi_grouped_list |> List.split in
-            let local_new_trans,local_new_states,_ = _gen_unique_states
-                ~grouped_indexed_trans:(locally_initially_indexed_trans |> List.flatten) 
-                ~known_unique_states 
-                ~new_unchecked_propositions:local_new_unchecked_propositions
-                c_uc_sum
-                transit_fun 
-                key_fun 
-                iso_fun in
-            let local_new_trans_res_idx = List.map (fun (t,k,isi,rsi) -> t,k,isi,rsi,res_idx ) local_new_trans
-            and local_new_states_res_idx = List.map (fun (b,k,i) -> b,k,i,res_idx ) local_new_states in
-            (local_new_trans_res_idx,local_new_states_res_idx)
-    )
-    (Parmap.L grouped_isi_indexed_trans) in
-    let trans,states_unmerged = List.split trans_and_state_props |> (fun (t,s) -> t|>List.flatten, s|> List.flatten) in
-    let merged_states,isos_merge = _merge_iso_bigs_and_reindexV3 states_unmerged transit_fun key_fun iso_fun |> (fun (ss,isos) -> ss, List.flatten isos ) in
-    let final_states,isos_regen = _regen_indexing_extended c_uc_sum merged_states in
-    let trans_tmp1 = _apply_reindexing_extended isos_merge trans in
-    let trans_tmp2 = _apply_reindexing_extended isos_regen trans_tmp1 in
-    let final_trans = List.map (fun (t,k,isi,rsi,_) -> t,k,isi,rsi) trans_tmp2 in
-    final_trans,final_states,List.length merged_states
-let _pargen_unique_statesV3 ~grouped_isi_indexed_trans ~known_unique_states c_uc_sum transit_fun key_fun iso_fun = 
-    let trans_and_state_props = List.mapi 
-    (
-    fun res_idx semi_grouped_list ->
-            let local_new_unchecked_propositions,locally_initially_indexed_trans = _map_init_index_of_iso_groups semi_grouped_list |> List.split in
-            let local_new_trans,local_new_states,_ = _gen_unique_states
-                ~grouped_indexed_trans:(locally_initially_indexed_trans |> List.flatten) 
-                ~known_unique_states 
-                ~new_unchecked_propositions:local_new_unchecked_propositions
-                c_uc_sum
-                transit_fun 
-                key_fun 
-                iso_fun in
-            let local_new_trans_res_idx = List.map (fun (t,k,isi,rsi) -> t,k,isi,rsi,res_idx ) local_new_trans
-            and local_new_states_res_idx = List.map (fun (b,k,i) -> b,k,i,res_idx ) local_new_states in
-            (local_new_trans_res_idx,local_new_states_res_idx)
-    ) 
-    grouped_isi_indexed_trans in
-    let trans,states_unmerged = List.split trans_and_state_props |> (fun (t,s) -> t|>List.flatten, s|> List.flatten) in
-    let merged_states,isos_merge = _merge_iso_bigs_and_reindexV2 states_unmerged transit_fun key_fun iso_fun |> (fun (ss,isos) -> ss, List.flatten isos ) in
-    let final_states,isos_regen = _regen_indexing_extended c_uc_sum merged_states in
-    let trans_tmp1 = _apply_reindexing_extended isos_merge trans in
-    let trans_tmp2 = _apply_reindexing_extended isos_regen trans_tmp1 in
-    let final_trans = List.map (fun (t,k,isi,rsi,_) -> t,k,isi,rsi) trans_tmp2 in
-    final_trans,final_states,List.length merged_states
-let _pargen_trans_and_unique_states rules ~checked ~unchecked checked_unchecked_sum transit_fun key_fun iso_fun =
-    (* let checked_unchecked_sum = List.length checked + List.length unchecked
-    and *)
-    let unchecked_without_key = List.map (fun (b,_,i) -> b,i ) unchecked
-    and known_unique_states = List.fold_left 
-        (
-            fun map (b,k,i) -> 
-            match KeyMap.find_opt k map with
-            | None -> KeyMap.add k [(b,k,i)] map
-            | Some l -> KeyMap.add k ((b,k,i)::l) map
-        )
-        checked
-        unchecked in
-    let semi_grouped_trans = _pargen_semi_grouped_trans_from_states 
-        rules 
-        unchecked_without_key 
-        transit_fun 
-        key_fun 
-        iso_fun in
-    let grouped_trans = _merge_iso_groups (semi_grouped_trans |> List.flatten) transit_fun key_fun iso_fun in
-    let new_unchecked_propositions,initially_indexed_trans = _parmap_init_index_of_iso_groups grouped_trans |> List.split in
-    let new_trans,new_states,num_of_new_states = _pargen_unique_states 
-        ~grouped_indexed_trans:(initially_indexed_trans |> List.flatten) 
-        ~known_unique_states 
-        ~new_unchecked_propositions 
-        checked_unchecked_sum 
-        transit_fun 
-        key_fun 
-        iso_fun in
-        new_trans,new_states,num_of_new_states,known_unique_states
 let parexplore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
     let gen_unique_states_fun = _generic_gen_unique_statesV2 List.mapi (fun x -> x) _merge_iso_bigs_and_reindexV2 in
     let main_fun = _generic_gen_trans_and_unique_statesV2 _pargen_semi_grouped_trans_from_states gen_unique_states_fun |> _generic_explore_ss in
