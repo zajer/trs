@@ -507,7 +507,7 @@ let _gen_trans_and_unique_states rules ~checked ~unchecked checked_unchecked_sum
         key_fun 
         iso_fun in
         new_trans,new_states,num_of_new_states,known_unique_states
-let _gen_trans_and_unique_statesV2 rules ~checked ~unchecked checked_unchecked_sum transit_fun key_fun iso_fun =
+let _generic_gen_trans_and_unique_statesV2 fun_gen_semi_grouped_trans_from_states fun_gen_unique_states rules ~checked ~unchecked checked_unchecked_sum transit_fun key_fun iso_fun =
     let unchecked_without_key = List.map (fun (b,_,i) -> b,i ) unchecked 
     and known_unique_states = List.fold_left 
         (
@@ -518,13 +518,13 @@ let _gen_trans_and_unique_statesV2 rules ~checked ~unchecked checked_unchecked_s
         )
         checked
         unchecked in
-    let semi_grouped_trans = _gen_semi_grouped_trans_from_states 
+    let semi_grouped_trans = fun_gen_semi_grouped_trans_from_states 
         rules 
         unchecked_without_key 
         transit_fun 
         key_fun 
         iso_fun in
-    let new_trans,new_states,num_of_new_states = _gen_unique_statesV2 
+    let new_trans,new_states,num_of_new_states = fun_gen_unique_states
         ~grouped_isi_indexed_trans:semi_grouped_trans
         ~known_unique_states  
         checked_unchecked_sum 
@@ -614,14 +614,14 @@ let _generic_explore_ss_slim_facade fun_explore_ss trans_file_name tools s0 rule
         _final_unmapping_of_states ucs,
         nos
 let explore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
-    let main_fun = _generic_explore_ss _gen_trans_and_unique_statesV2 in
-    _generic_explore_ss_facade main_fun tools s0 rules max_steps
+    let main_fun = _generic_gen_trans_and_unique_statesV2 _gen_semi_grouped_trans_from_states _gen_unique_statesV2 |> _generic_explore_ss in
+        _generic_explore_ss_facade main_fun tools s0 rules max_steps
 let explore_ss_const_explo_stack ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
-    let main_fun = _generic_explore_ss_const_stack _gen_trans_and_unique_statesV2 in
-    _generic_explore_ss_facade main_fun tools s0 rules max_steps
+    let main_fun = _generic_gen_trans_and_unique_statesV2 _gen_semi_grouped_trans_from_states _gen_unique_statesV2 |> _generic_explore_ss in
+        _generic_explore_ss_facade main_fun tools s0 rules max_steps
 let explore_ss_slim ?(trans_file_name=(string_of_float (Unix.time ()))^"csv" ) ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
-    let main_fun = _generic_explore_ss_const_stack_slim _gen_trans_and_unique_statesV2 in
-    _generic_explore_ss_slim_facade main_fun trans_file_name tools s0 rules max_steps
+    let main_fun = _generic_gen_trans_and_unique_statesV2 _gen_semi_grouped_trans_from_states _gen_unique_statesV2 |> _generic_explore_ss_const_stack_slim in
+        _generic_explore_ss_slim_facade main_fun trans_file_name tools s0 rules max_steps
 let _pargen_semi_grouped_trans_from_states rules states transit_fun key_fun iso_fun =
     Parmap.parfold 
         (
