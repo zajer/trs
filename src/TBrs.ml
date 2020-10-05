@@ -512,6 +512,12 @@ let _append_trans_csv ?(first_time=false) trans file =
     let content = if first_time then trans_header :: transitions else transitions in
     Csv.output_all out_channel content;
     Csv.close_out out_channel
+let _save_states_csv states file =
+    let out_channel = open_out_gen [Open_creat; Open_append] 666 file |> Csv.to_channel in
+    let states_string = states_to_losl states in
+    let content = trans_header :: states_string in
+    Csv.output_all out_channel content;
+    Csv.close_out out_channel
 let _unmap_key_of_result_state trans =
     List.map (fun (t,_,isi,rsi) -> t,isi,rsi) trans
 let _generic_explore_ss_const_stack_slim fun_gen_trans_and_states rules ~(max_steps:int) ~(current_step:int) ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun trans_file =
@@ -549,7 +555,7 @@ let _generic_explore_ss_facade fun_explore_ss tools (s0:Big.t) (rules:react list
         _final_unmapping_of_states (List.flatten cs) ,
         _final_unmapping_of_states ucs,
         nos
-let _generic_explore_ss_slim_facade fun_explore_ss trans_file_name tools s0 rules max_steps =
+let _generic_explore_ss_slim_facade fun_explore_ss trans_file_name states_file_name tools s0 rules max_steps =
     let transit_fun, key_fun, iso_fun = tools in
     let s0_k = transit_fun s0 |> key_fun in
     let checked = KeyMap.empty 
@@ -558,8 +564,10 @@ let _generic_explore_ss_slim_facade fun_explore_ss trans_file_name tools s0 rule
     and c_us_sum = 1 in
     let num_of_trans,cs_map,ucs,nos = fun_explore_ss rules ~max_steps ~current_step ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun trans_file_name in
     let _,cs = KeyMap.bindings cs_map |> List.split in
+    let result_checked_states = _final_unmapping_of_states (List.flatten cs) in
+    let _ = _save_states_csv result_checked_states states_file_name in
         num_of_trans ,
-        _final_unmapping_of_states (List.flatten cs) ,
+        result_checked_states,
         _final_unmapping_of_states ucs,
         nos
 let explore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
@@ -570,10 +578,10 @@ let explore_ss_const_explo_stack ?(tools = Digraph.big_2_dig,Digraph.hash_graph,
     let gen_unique_states_fun = _generic_gen_unique_statesV2 List.mapi (fun x -> x) _merge_iso_bigs_and_reindexV2 in
     let main_fun = _generic_gen_trans_and_unique_statesV2 _gen_semi_grouped_trans_from_states gen_unique_states_fun |> _generic_explore_ss in
         _generic_explore_ss_facade main_fun tools s0 rules max_steps
-let explore_ss_slim ?(trans_file_name=(string_of_float (Unix.time ()))^"csv" ) ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
+let explore_ss_slim ?(trans_file_name=(string_of_float (Unix.time ()))^"_trans.csv" ) ?(states_file_name=(string_of_float (Unix.time ()))^"_states.csv" ) ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
     let gen_unique_states_fun = _generic_gen_unique_statesV2 List.mapi (fun x -> x) _merge_iso_bigs_and_reindexV2 in
     let main_fun = _generic_gen_trans_and_unique_statesV2 _gen_semi_grouped_trans_from_states gen_unique_states_fun |> _generic_explore_ss_const_stack_slim in
-        _generic_explore_ss_slim_facade main_fun trans_file_name tools s0 rules max_steps
+        _generic_explore_ss_slim_facade main_fun trans_file_name states_file_name tools s0 rules max_steps
 let _pargen_semi_grouped_trans_from_states rules states transit_fun key_fun iso_fun =
     Parmap.parfold 
         (
@@ -657,7 +665,7 @@ let parexplore_ss_const_explo_stack ?(tools = Digraph.big_2_dig,Digraph.hash_gra
     let gen_unique_states_fun = _generic_gen_unique_statesV2 List.mapi (fun x -> x) _merge_iso_bigs_and_reindexV2 in
     let main_fun = _generic_gen_trans_and_unique_statesV2 _pargen_semi_grouped_trans_from_states gen_unique_states_fun |> _generic_explore_ss_const_stack in
         _generic_explore_ss_facade main_fun tools s0 rules max_steps
-let parexplore_ss_slim ?(trans_file_name= (string_of_float (Unix.time ()))^"csv" ) ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
+let parexplore_ss_slim ?(trans_file_name=(string_of_float (Unix.time ()))^"_trans.csv" ) ?(states_file_name=(string_of_float (Unix.time ()))^"_states.csv" ) ?(tools = Digraph.big_2_dig,Digraph.hash_graph,_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
     let gen_unique_states_fun = _generic_gen_unique_statesV2 Parmap.parmapi (fun x -> Parmap.L x) _merge_iso_bigs_and_reindexV3 in
     let main_fun = _generic_gen_trans_and_unique_statesV2 _pargen_semi_grouped_trans_from_states gen_unique_states_fun |> _generic_explore_ss_const_stack_slim in
-        _generic_explore_ss_slim_facade main_fun trans_file_name tools s0 rules max_steps
+        _generic_explore_ss_slim_facade main_fun trans_file_name states_file_name tools s0 rules max_steps
