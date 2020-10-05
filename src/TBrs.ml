@@ -515,7 +515,7 @@ let _append_trans_csv ?(first_time=false) trans file =
 let _save_states_csv states file =
     let out_channel = open_out_gen [Open_creat; Open_append] 666 file |> Csv.to_channel in
     let states_string = states_to_losl states in
-    let content = trans_header :: states_string in
+    let content = states_header :: states_string in
     Csv.output_all out_channel content;
     Csv.close_out out_channel
 let _unmap_key_of_result_state trans =
@@ -531,8 +531,8 @@ let _generic_explore_ss_const_stack_slim fun_gen_trans_and_states rules ~(max_st
         curr_unchecked_ref := new_unchecked;
         curr_checked_ref := new_checked;
         num_of_checked_and_unchecked_ref := (!num_of_checked_and_unchecked_ref+num_of_new_unchecked_states);
-        curr_step_ref := ( !curr_step_ref + 1);
         _append_trans_csv ~first_time:(!curr_step_ref = 0 ) (new_trans |> _unmap_key_of_result_state ) trans_file ;
+        curr_step_ref := ( !curr_step_ref + 1);
         res_trans_count := !res_trans_count + List.length new_trans
     done;
         !res_trans_count,!curr_checked_ref,!curr_unchecked_ref,!curr_step_ref
