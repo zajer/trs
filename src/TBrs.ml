@@ -1,8 +1,9 @@
 open Bigraph
-open Export
+
 type react = { label:string; lhs:Big.t; rhs:Big.t; f_sm:Fun.t option; f_rnm:Fun.t}
 (*type t = { is:Big.t; os:Big.t ; rf:Fun.t ; p:Iso.t ; rl:string}*)
 module KeyMap = Map.Make(struct let compare = Z.compare type t = Z.t end)
+(*
 let trans_to_string t =
     let init_state_label = "Input state:"
     and res_state_label = "Output state:"
@@ -15,6 +16,8 @@ let trans_to_string t =
         and participants = participant_label^"\n"^(Iso.to_string t.p)
         in
             (String.concat "\n" [init_state;res_state;residue_fun;participants]);;
+*)
+(*
 let _REACT_LABEL_HEADER = "react label"
 let _STATE_INDEX_HEADER = "state index"
 let _STATE_HEADER = "state representation"
@@ -58,7 +61,8 @@ let states_to_losl ius =
     []
     ius
     in
-        states_rest   
+        states_rest
+*) 
 let is_site_mapping_function_correct f_sm ~(lhs:Big.t) ~(rhs:Big.t) =
     let is_fsm_total = IntSet.equal (IntSet.of_int (rhs.p.s) ) (Fun.dom f_sm)
     and is_fsm_to_not_exceeding = IntSet.max_elt (Fun.codom f_sm) < Some (lhs.p.s)
@@ -84,7 +88,7 @@ let apply_trr_with_occ (b:Big.t) (r:react) (lhs_occ:Big.occ) =
     let res_b,res_f = TBig.rewrite lhs_occ ~target:b ~r0:r.lhs ~r1:r.rhs ~f_s:r.f_sm ~f_r1_r0:r.f_rnm
     and res_iso = match lhs_occ with | iso, _, _ -> iso
     in
-        { is=b; os=res_b;rf=res_f;p=res_iso; rl=r.label}
+        { Export.is=b; os=res_b;rf=res_f;p=res_iso; rl=r.label}
 let apply_trr (b:Big.t) (r:react) =
     let occs = Big.occurrences ~target:b ~pattern:r.lhs
     in  
@@ -96,12 +100,12 @@ let _split_into_iso_trans patt t_mapped transit_fun key_fun iso_fun =
     let patt_key = key_fun patt_transit in
             List.fold_left 
             (
-                fun  (res_eq,res_neq) (t,k)-> 
-                    let checked_transit = transit_fun t.os in
+                fun  (res_eq,res_neq) (trans,k)-> 
+                    let checked_transit = transit_fun trans.Export.os in
                         if patt_key = key_fun checked_transit && iso_fun checked_transit patt_transit then
-                            (t,k)::res_eq,res_neq
+                            (trans,k)::res_eq,res_neq
                         else
-                            res_eq,(t,k)::res_neq
+                            res_eq,(trans,k)::res_neq
             )
             ([],[])
             t_mapped;;
@@ -109,29 +113,29 @@ let _split_into_iso_trans_no_key_checks patt t_mapped transit_fun _ iso_fun =
     let patt_transit = transit_fun patt in
         List.fold_left 
         (
-            fun  (res_eq,res_neq) (t,k)-> 
-                let checked_transit = transit_fun t.os in
+            fun  (res_eq,res_neq) (trans,k)-> 
+                let checked_transit = transit_fun trans.Export.os in
                     if iso_fun checked_transit patt_transit then
-                        (t,k)::res_eq,res_neq
+                        (trans,k)::res_eq,res_neq
                     else
-                        res_eq,(t,k)::res_neq
+                        res_eq,(trans,k)::res_neq
         )
         ([],[])
         t_mapped;;
 let rec _group_based_on_iso_res_states lot transit_fun key_fun iso_fun = 
     match lot with
         | [] -> []
-        | (t,k)::rest -> 
-        let equal_with_t, rest' = _split_into_iso_trans t.os rest transit_fun key_fun iso_fun in 
+        | (trans,k)::rest -> 
+        let equal_with_t, rest' = _split_into_iso_trans trans.Export.os rest transit_fun key_fun iso_fun in 
         let grouped_rest = _group_based_on_iso_res_states rest' transit_fun key_fun iso_fun in 
-            [(t.os,k),(t,k)::equal_with_t] |> List.rev_append grouped_rest
+            [(trans.os,k),(trans,k)::equal_with_t] |> List.rev_append grouped_rest
 let rec _group_based_on_iso_res_states_no_key_checks lot transit_fun key_fun iso_fun = 
     match lot with
         | [] -> []
-        | (t,k)::rest -> 
-        let equal_with_t, rest' = _split_into_iso_trans_no_key_checks t.os rest transit_fun key_fun iso_fun in 
+        | (trans,k)::rest -> 
+        let equal_with_t, rest' = _split_into_iso_trans_no_key_checks trans.Export.os rest transit_fun key_fun iso_fun in 
         let grouped_rest = _group_based_on_iso_res_states_no_key_checks rest' transit_fun key_fun iso_fun in 
-            [(t.os,k),(t,k)::equal_with_t] |> List.rev_append grouped_rest
+            [(trans.os,k),(trans,k)::equal_with_t] |> List.rev_append grouped_rest
 let _group_based_on_iso_res_statesV2 lot transit_fun key_fun iso_fun =
     let kp = List.fold_left 
         (
@@ -152,7 +156,7 @@ let _group_based_on_iso_res_statesV2 lot transit_fun key_fun iso_fun =
     List.flatten tmp_res
 let _step_grouped_iso_res (state,idx) rules transit_fun key_fun iso_fun =
     let raw_result = List.fold_left (fun res r -> apply_trr state r |> List.rev_append res) [] rules in
-    let mapped_with_key_result = List.map (fun t -> let transit_rs = transit_fun t.os in t, key_fun transit_rs) raw_result in
+    let mapped_with_key_result = List.map (fun trans -> let transit_rs = transit_fun trans.Export.os in trans, key_fun transit_rs) raw_result in
     let grouped_result = _group_based_on_iso_res_statesV2 mapped_with_key_result transit_fun key_fun iso_fun in
     let init_indexed_result = List.map (fun ((b,k),(tl)) -> (b,k),List.map (fun (t,k) -> t,k,idx) tl ) grouped_result in
         init_indexed_result
@@ -507,6 +511,7 @@ let _generic_explore_ss_const_stack fun_gen_trans_and_unique_states rules ~(max_
         res_trans := new_trans :: !res_trans 
     done;
         !res_trans,!curr_checked_ref,!curr_unchecked_ref,!curr_step_ref
+(*
 let _append_trans_csv ?(first_time=false) trans file =
     let out_channel = open_out_gen [Open_creat; Open_append] 666 file |> Csv.to_channel in
     let transitions = transistions_to_losl trans in
@@ -519,6 +524,7 @@ let _save_states_csv states file =
     let content = states_header :: states_string in
     Csv.output_all out_channel content;
     Csv.close_out out_channel
+*)
 let _unmap_key_of_result_state trans =
     List.map (fun (t,_,isi,rsi) -> t,isi,rsi) trans
 let _generic_explore_ss_const_stack_slim fun_gen_trans_and_states rules ~(max_steps:int) ~(current_step:int) ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun trans_file =
@@ -532,7 +538,7 @@ let _generic_explore_ss_const_stack_slim fun_gen_trans_and_states rules ~(max_st
         curr_unchecked_ref := new_unchecked;
         curr_checked_ref := new_checked;
         num_of_checked_and_unchecked_ref := (!num_of_checked_and_unchecked_ref+num_of_new_unchecked_states);
-        _append_trans_csv ~first_time:(!curr_step_ref = 0 ) (new_trans |> _unmap_key_of_result_state ) trans_file ;
+        Export.append_trans_csv ~first_time:(!curr_step_ref = 0 ) (new_trans |> _unmap_key_of_result_state ) trans_file ;
         curr_step_ref := ( !curr_step_ref + 1);
         res_trans_count := !res_trans_count + List.length new_trans
     done;
@@ -566,7 +572,7 @@ let _generic_explore_ss_slim_facade fun_explore_ss trans_file_name states_file_n
     let num_of_trans,cs_map,ucs,nos = fun_explore_ss rules ~max_steps ~current_step ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun trans_file_name in
     let _,cs = KeyMap.bindings cs_map |> List.split in
     let result_checked_states = _final_unmapping_of_states (List.flatten cs) in
-    let _ = _save_states_csv result_checked_states states_file_name in
+    let _ = Export.save_states_csv result_checked_states states_file_name in
         num_of_trans ,
         result_checked_states,
         _final_unmapping_of_states ucs,
