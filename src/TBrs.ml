@@ -1,15 +1,16 @@
 open Bigraph
+open Export
 type react = { label:string; lhs:Big.t; rhs:Big.t; f_sm:Fun.t option; f_rnm:Fun.t}
-type t = { is:Big.t; rs:Big.t ; rf:Fun.t ; p:Iso.t ; rl:string}
+(*type t = { is:Big.t; os:Big.t ; rf:Fun.t ; p:Iso.t ; rl:string}*)
 module KeyMap = Map.Make(struct let compare = Z.compare type t = Z.t end)
 let trans_to_string t =
-    let init_state_label = "Init state:"
-    and res_state_label = "Res state:"
+    let init_state_label = "Input state:"
+    and res_state_label = "Output state:"
     and residue_fun_label = "Residue fun:"
-    and participant_label = "Participants:"
+    and participant_label = "Participants fun:"
     in
         let init_state = init_state_label^"\n"^(Big.to_string t.is)
-        and res_state = res_state_label^"\n"^(Big.to_string t.rs)
+        and res_state = res_state_label^"\n"^(Big.to_string t.os)
         and residue_fun = residue_fun_label^"\n"^(Fun.to_string t.rf)
         and participants = participant_label^"\n"^(Iso.to_string t.p)
         in
@@ -33,7 +34,7 @@ let transistions_to_losl its =
                 and rl = t.rl
                 and p = (Iso.to_string t.p)
                 and rf = (Fun.to_string t.rf)
-                and rs = (Big.to_string t.rs)
+                and rs = (Big.to_string t.os)
                 in
                     let new_row = [isi;rsi;rl;p;rf;rs]
                     in
@@ -83,7 +84,7 @@ let apply_trr_with_occ (b:Big.t) (r:react) (lhs_occ:Big.occ) =
     let res_b,res_f = TBig.rewrite lhs_occ ~target:b ~r0:r.lhs ~r1:r.rhs ~f_s:r.f_sm ~f_r1_r0:r.f_rnm
     and res_iso = match lhs_occ with | iso, _, _ -> iso
     in
-        { is=b; rs=res_b;rf=res_f;p=res_iso; rl=r.label}
+        { is=b; os=res_b;rf=res_f;p=res_iso; rl=r.label}
 let apply_trr (b:Big.t) (r:react) =
     let occs = Big.occurrences ~target:b ~pattern:r.lhs
     in  
@@ -96,7 +97,7 @@ let _split_into_iso_trans patt t_mapped transit_fun key_fun iso_fun =
             List.fold_left 
             (
                 fun  (res_eq,res_neq) (t,k)-> 
-                    let checked_transit = transit_fun t.rs in
+                    let checked_transit = transit_fun t.os in
                         if patt_key = key_fun checked_transit && iso_fun checked_transit patt_transit then
                             (t,k)::res_eq,res_neq
                         else
@@ -109,7 +110,7 @@ let _split_into_iso_trans_no_key_checks patt t_mapped transit_fun _ iso_fun =
         List.fold_left 
         (
             fun  (res_eq,res_neq) (t,k)-> 
-                let checked_transit = transit_fun t.rs in
+                let checked_transit = transit_fun t.os in
                     if iso_fun checked_transit patt_transit then
                         (t,k)::res_eq,res_neq
                     else
@@ -121,16 +122,16 @@ let rec _group_based_on_iso_res_states lot transit_fun key_fun iso_fun =
     match lot with
         | [] -> []
         | (t,k)::rest -> 
-        let equal_with_t, rest' = _split_into_iso_trans t.rs rest transit_fun key_fun iso_fun in 
+        let equal_with_t, rest' = _split_into_iso_trans t.os rest transit_fun key_fun iso_fun in 
         let grouped_rest = _group_based_on_iso_res_states rest' transit_fun key_fun iso_fun in 
-            [(t.rs,k),(t,k)::equal_with_t] |> List.rev_append grouped_rest
+            [(t.os,k),(t,k)::equal_with_t] |> List.rev_append grouped_rest
 let rec _group_based_on_iso_res_states_no_key_checks lot transit_fun key_fun iso_fun = 
     match lot with
         | [] -> []
         | (t,k)::rest -> 
-        let equal_with_t, rest' = _split_into_iso_trans_no_key_checks t.rs rest transit_fun key_fun iso_fun in 
+        let equal_with_t, rest' = _split_into_iso_trans_no_key_checks t.os rest transit_fun key_fun iso_fun in 
         let grouped_rest = _group_based_on_iso_res_states_no_key_checks rest' transit_fun key_fun iso_fun in 
-            [(t.rs,k),(t,k)::equal_with_t] |> List.rev_append grouped_rest
+            [(t.os,k),(t,k)::equal_with_t] |> List.rev_append grouped_rest
 let _group_based_on_iso_res_statesV2 lot transit_fun key_fun iso_fun =
     let kp = List.fold_left 
         (
@@ -151,7 +152,7 @@ let _group_based_on_iso_res_statesV2 lot transit_fun key_fun iso_fun =
     List.flatten tmp_res
 let _step_grouped_iso_res (state,idx) rules transit_fun key_fun iso_fun =
     let raw_result = List.fold_left (fun res r -> apply_trr state r |> List.rev_append res) [] rules in
-    let mapped_with_key_result = List.map (fun t -> let transit_rs = transit_fun t.rs in t, key_fun transit_rs) raw_result in
+    let mapped_with_key_result = List.map (fun t -> let transit_rs = transit_fun t.os in t, key_fun transit_rs) raw_result in
     let grouped_result = _group_based_on_iso_res_statesV2 mapped_with_key_result transit_fun key_fun iso_fun in
     let init_indexed_result = List.map (fun ((b,k),(tl)) -> (b,k),List.map (fun (t,k) -> t,k,idx) tl ) grouped_result in
         init_indexed_result
