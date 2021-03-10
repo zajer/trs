@@ -2,8 +2,10 @@ open Bigraph
 
 let big_nodes_2_dig_nodes ns = 
     Nodes.fold (fun i n res-> (i,Ctrl.to_string n)::res ) ns []
+(*
 let big_hedges_2_dig_nodes ~nohe ~non =
     List.init nohe (fun i -> i+non,"HE")
+*)
 let big_hedges_2_dig_nodes_adv hedges ~non = 
     let res,_ = Link.Lg.fold 
         (
@@ -48,8 +50,8 @@ module NS = Set.Make(
     let compare = (fun (i1,_) (i2,_)  -> Stdlib.compare i1 i2)
     type t = nt
     end )
-type t = NS.t*Bigraph.Sparse.t
-type graph = {nodes:NS.t;edges:Sparse.t}
+(*type ns = NS.t*Bigraph.Sparse.t*)
+type t = {nodes:NS.t;edges:Sparse.t}
 let big_2_dig (b:Big.t) =
     let non = Nodes.size b.n
     and nohe = Link.Lg.cardinal b.l
@@ -92,8 +94,10 @@ let hash_string_512 str =
         "Big_hex:"^(Z.to_bits res |> Hex.of_string |> Hex.show )  |> print_endline ;*)
         res
     *)
+(*
 let average_of_chl sum num_of_chl =
     Z.fdiv sum num_of_chl
+*)
 let hash_hash hsh =
     hash_string (Z.to_string hsh)
 let hash_of_single_node node children flag=
@@ -165,7 +169,7 @@ let hash_graph g =
             hash_of_node root_id nodes adj_mx
 
 open Onauty
-let dig_2_graph (d:graph) =
+let dig_2_graph (d:t) =
     let non = NS.cardinal d.nodes
     and edges = Sparse.fold (fun f t res -> (f,t)::res) d.edges []
     in
@@ -176,3 +180,8 @@ let dig_2_graph (d:graph) =
                 d.nodes
                 result_no_color
             
+let are_digraphs_iso d1 d2 = 
+    let g1 = dig_2_graph d1 
+    and g2 = dig_2_graph d2
+    in
+        Onauty.Iso.are_digraphs_iso ~check_colors:true g1 g2
