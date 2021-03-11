@@ -2,6 +2,7 @@ open OUnit2
 
 open Bigraph
 open Tracking_bigraph
+module Digraph_TRS_gen = TBrs.Make(Tools.DigraphTools)
 
 let test_parexplore_ss_1 _ =
     let s0_to_parse ="{(0, A:0),(1, A:0),(2, B:0),(3, B:0)}\n0 4 0\n0010\n0001\n0000\n0000"
@@ -15,7 +16,8 @@ let test_parexplore_ss_1 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss s0 [react] 10
+                (*let tl,ss,uss,_ = TBrs.parexplore_ss s0 [react] 10*)
+                let tl,ss,uss,_ = Digraph_TRS_gen.parexplore_ss s0 [react] 10
                 in
                     List.iteri
                         (
@@ -41,7 +43,7 @@ let test_parexplore_ss_2 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss s0 [react] 3
+                let tl,ss,uss,_ = Digraph_TRS_gen.parexplore_ss s0 [react] 3
                 in
                     List.iteri
                         (
@@ -76,7 +78,7 @@ let test_parexplore_ss_3 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss s0 [react] 5
+                let tl,ss,uss,_ = Digraph_TRS_gen.parexplore_ss s0 [react] 5
                 in
                     List.iteri
                         (
@@ -111,7 +113,7 @@ let test_parexplore_ss_4 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss s0 [react] 9
+                let tl,ss,uss,_ = Digraph_TRS_gen.parexplore_ss s0 [react] 9
                 in
                     List.iteri
                         (
@@ -146,7 +148,7 @@ let test_parexplore_ss_5 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss s0 [react] 15
+                let tl,ss,uss,_ = Digraph_TRS_gen.parexplore_ss s0 [react] 15
                 in
                     List.iteri
                         (
@@ -181,3 +183,4 @@ let suite =
 
 let () =
     run_test_tt_main suite
+    

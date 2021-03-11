@@ -1,6 +1,0 @@
-
-(executable
-  (name benchmark)
-  (libraries tracking_bigraph )
-  (modes (native exe) )
-) 
