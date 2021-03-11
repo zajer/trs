@@ -16,7 +16,6 @@ let test_parexplore_ss_1 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                (*let tl,ss,uss,_ = TBrs.parexplore_ss s0 [react] 10*)
                 let tl,ss,uss,_ = Digraph_TRS_gen.parexplore_ss s0 [react] 10
                 in
                     List.iteri

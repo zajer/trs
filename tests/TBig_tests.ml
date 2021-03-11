@@ -22,9 +22,6 @@ let test_prepare_fun_of_residue_1 _ =
     in
       assert_equal ~cmp:(fun x y -> Fun.equal x y) exp_res res
 let test_rewrite_1_no_eta _ =
-  (*let s0_to_parse = "{(0, A:2),(1, A:2),(2, A:2),(3, A:2),(4, U:0)}\n0 5 0\n00000\n00000\n00001\n00000\n00000\n({}, {}, {(0, 1), (1, 1)})\n({}, {}, {(0, 1), (2, 1)})\n({}, {}, {(1, 1), (3, 1)})\n({}, {}, {(3, 1), (2, 1)})"
-  and lhs_to_parse = "{(0, A:2),(1, A:2),(2, U:0)}\n1 3 0\n110\n001\n000\n000\n({}, {}, {(0, 1), (1, 1)})\n({}, {a}, {(0, 1)})\n({}, {d}, {(1, 1)})"
-  and rhs_to_parse = "{(0, A:2),(1, A:2)}\n1 2 0\n11\n00\n00\n({}, {}, {(0, 1), (1, 1)})\n({}, {a}, {(0, 1)})\n({}, {d}, {(1, 1)})"*)
   let s0_to_parse = test_rewrite_1_no_eta_s0
   and redex_to_parse = test_rewrite_1_no_eta_redex
   and reactum_to_parse = test_rewrite_1_no_eta_reactum
@@ -43,22 +40,12 @@ let test_rewrite_1_no_eta _ =
             [] 
             occs
         and exp_codom = [0;1;2;3] |> IntSet.of_list
-        (*and exp_fun_1 = Fun.empty |> Fun.add 0 2 |> Fun.add 1 0 |> Fun.add 2 1 |> Fun.add 3 3 
-        and exp_fun_2 = Fun.empty |> Fun.add 0 2 |> Fun.add 1 3 |> Fun.add 2 0 |> Fun.add 3 1 *)
         in
-          (*let eval_1 = List.exists (fun f -> Fun.equal f exp_fun_1 ) res_funs_list;
-          and eval_2 = List.exists (fun f -> Fun.equal f exp_fun_2 ) res_funs_list;*)
           let cond_1 = List.for_all (fun f -> Fun.codom f |> IntSet.equal exp_codom) res_funs_list
           in
-            (*List.iter (fun f -> Fun.to_string f |> print_endline) res_funs_list;*)
             assert_equal ~msg:"Not every residue function's codom is as excpected" true cond_1;
             assert_equal ~msg:"There should be exactly two occurences" 2 (List.length res_funs_list)
-            (*assert_equal true eval_1;
-            assert_equal true eval_2*)
 let test_rewrite_2_eta _ =
-  (*let s_to_parse ="{(0, A:0),(1, B:0),(2, C:0),(3, D:0),(4, E:0)}\n0 5 0\n01100\n00010\n00001\n00000\n00000\n"
-  and r0_to_parse ="{(0, A:0),(1, B:0),(2, C:0)}\n1 3 2\n10000\n01100\n00010\n00001\n"
-  and r1_to_parse ="{(0, A:0),(1, B:0),(2, C:0)}\n1 3 4\n1000000\n0110000\n0001010\n0000101\n"*)
   let s_to_parse = test_rewrite_2_3_eta_s0
   and redex_to_parse = test_rewrite_2_eta_redex
   and reactum_to_parse = test_rewrite_2_eta_reactum
@@ -80,41 +67,33 @@ let test_rewrite_2_eta _ =
             assert_equal ~msg:"Result residue function is not the same as expected" ~cmp:(fun f1 f2 -> Fun.equal f1 f2) exp_fun res_fun;
             assert_equal ~msg:"Result bigraph is not the same as expected" ~cmp:(fun f1 f2 -> Big.equal f1 f2) exp_big res_big
 let test_rewrite_3_eta _ =
-  (*
-  let s_to_parse ="{(0, A:0),(1, B:0),(2, C:0),(3, D:0),(4, E:0)}\n0 5 0\n01100\n00010\n00001\n00000\n00000\n"
-    and r0_to_parse ="{(0, B:0)}\n1 1 1\n10\n01"
-    and r1_to_parse ="{(0, B:0)}\n1 1 2\n100\n011"
-    *)
-    let s0_to_parse = test_rewrite_2_3_eta_s0
-    and redex_to_parse = test_rewrite_3_eta_redex
-    and reactum_to_parse = test_rewrite_3_eta_reactum
+  let s0_to_parse = test_rewrite_2_3_eta_s0
+  and redex_to_parse = test_rewrite_3_eta_redex
+  and reactum_to_parse = test_rewrite_3_eta_reactum
+  in
+    let s0 = Big.of_string s0_to_parse
+    and redex = Big.of_string redex_to_parse
+    and reactum = Big.of_string reactum_to_parse
+    and fs = Fun.empty |> Fun.add 0 0 |> Fun.add 1 0
+    and tau = Fun.empty |> Fun.add 0 0 
     in
-      let s0 = Big.of_string s0_to_parse
-      and redex = Big.of_string redex_to_parse
-      and reactum = Big.of_string reactum_to_parse
-      and fs = Fun.empty |> Fun.add 0 0 |> Fun.add 1 0
-      and tau = Fun.empty |> Fun.add 0 0 
+      let occs = Big.occurrences ~target:s0 ~pattern:redex
       in
-        let occs = Big.occurrences ~target:s0 ~pattern:redex
+        let oc = assert_equal ~msg:"There should be exactly one occurence" 1 (List.length occs); List.hd occs
         in
-          let oc = assert_equal ~msg:"There should be exactly one occurence" 1 (List.length occs); List.hd occs
+          let (res_big, res_fun) = TBig.rewrite oc ~target:s0 ~r0:redex ~r1:reactum ~f_s:(Some fs) ~f_r1_r0:tau ;
+          and exp_fun = Fun.empty |> Fun.add 0 0 |> Fun.add 1 1 |> Fun.add 2 3 |> Fun.add 3 3 |> Fun.add 4 2 |> Fun.add 5 4
+          and exp_big = Big.of_string test_rewrite_3_eta_expected_result
           in
-            let (res_big, res_fun) = TBig.rewrite oc ~target:s0 ~r0:redex ~r1:reactum ~f_s:(Some fs) ~f_r1_r0:tau ;
-            and exp_fun = Fun.empty |> Fun.add 0 0 |> Fun.add 1 1 |> Fun.add 2 3 |> Fun.add 3 3 |> Fun.add 4 2 |> Fun.add 5 4
-            and exp_big = Big.of_string test_rewrite_3_eta_expected_result
-            in
-            let iso_expected_on_result = TBig.translate_equal ~from_b:exp_big ~to_b:res_big in
-              assert_equal ~msg:"Result bigraph is not equal to the expected" ~cmp:(fun b1 b2 -> Big.equal b1 b2) exp_big res_big;
-              assert_equal 
-                ~printer:(fun f -> Fun.to_string f ) 
-                ~msg:"Result residue function is not equal to the expected" 
-                ~cmp:(fun f1 f2 -> Fun.equal f1 f2)
-                (Fun.transform ~iso_dom:iso_expected_on_result ~iso_codom:(Iso.of_list [(0,0);(1,1);(2,2);(3,3);(4,4)] ) exp_fun) 
-                res_fun
+          let iso_expected_on_result = TBig.translate_equal ~from_b:exp_big ~to_b:res_big in
+            assert_equal ~msg:"Result bigraph is not equal to the expected" ~cmp:(fun b1 b2 -> Big.equal b1 b2) exp_big res_big;
+            assert_equal 
+              ~printer:(fun f -> Fun.to_string f ) 
+              ~msg:"Result residue function is not equal to the expected" 
+              ~cmp:(fun f1 f2 -> Fun.equal f1 f2)
+              (Fun.transform ~iso_dom:iso_expected_on_result ~iso_codom:(Iso.of_list [(0,0);(1,1);(2,2);(3,3);(4,4)] ) exp_fun) 
+              res_fun
 let test_rewrite_4_no_eta _ =
-  (*let s_to_parse ="{(0, A:0),(1, B:0),(2, C:0),(3, D:0),(4, E:0)}\n0 5 0\n01100\n00010\n00001\n00000\n00000\n"
-    and r0_to_parse ="{(0, A:0)}\n1 1 1\n10\n01"
-    and r1_to_parse ="{(0, A:0),(1, X:0)}\n1 2 1\n110\n001\n000"*)
   let s0_to_parse = test_rewrite_4_no_eta_s0
   and redex_to_parse = test_rewrite_4_no_eta_redex
   and reactum_to_parse = test_rewrite_4_no_eta_reactum
@@ -141,12 +120,7 @@ let test_rewrite_4_no_eta _ =
                 ~cmp:(fun f1 f2 -> Fun.equal f1 f2)
                 (Fun.transform ~iso_dom:iso_expected_on_result ~iso_codom:(Iso.of_list [(0,0);(1,1);(2,2);(3,3);(4,4)] ) exp_fun) 
                 res_fun
-            (*assert_equal ~cmp:(fun f1 f2 -> Fun.equal f1 f2) exp_fun res_fun*)
-            
 let test_rewrite_5_eta _ =
-  (*let s_to_parse ="{(0, A:0),(1, B:0)}\n0 2 0\n01\n00"
-    and r0_to_parse ="{(0, A:0)}\n1 1 1\n10\n01"
-    and r1_to_parse ="{(0, A:0),(1, X:0)}\n1 2 2\n1100\n0011\n0000"*)
   let s0_to_parse = test_rewrite_5_eta_s0
   and redex_to_parse = test_rewrite_5_eta_redex
   and reactum_to_parse = test_rewrite_5_eta_reactum
@@ -173,8 +147,6 @@ let test_rewrite_5_eta _ =
             ~cmp:(fun f1 f2 -> Fun.equal f1 f2)
             (Fun.transform ~iso_dom:iso_expected_on_result ~iso_codom:(Iso.of_list [(0,0);(1,1);(2,2);(3,3);(4,4)] ) exp_fun) 
             res_fun
-            (*assert_equal ~cmp:(fun f1 f2 -> Fun.equal f1 f2) exp_fun res_fun*)
-            
 let suite =
   "TBig tests" >::: [
     "Prepare function of residue 1">:: test_prepare_fun_of_residue_1;

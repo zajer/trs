@@ -2,10 +2,6 @@ open Bigraph
 
 let big_nodes_2_dig_nodes ns = 
     Nodes.fold (fun i n res-> (i,Ctrl.to_string n)::res ) ns []
-(*
-let big_hedges_2_dig_nodes ~nohe ~non =
-    List.init nohe (fun i -> i+non,"HE")
-*)
 let big_hedges_2_dig_nodes_adv hedges ~non = 
     let res,_ = Link.Lg.fold 
         (
@@ -50,13 +46,11 @@ module NS = Set.Make(
     let compare = (fun (i1,_) (i2,_)  -> Stdlib.compare i1 i2)
     type t = nt
     end )
-(*type ns = NS.t*Bigraph.Sparse.t*)
 type t = {nodes:NS.t;edges:Sparse.t}
 let big_2_dig (b:Big.t) =
     let non = Nodes.size b.n
     and nohe = Link.Lg.cardinal b.l
     in
-        (*let ns = (big_nodes_2_dig_nodes b.n)@(big_hedges_2_dig_nodes ~nohe ~non)*)
         let ns = (big_nodes_2_dig_nodes b.n)@(big_hedges_2_dig_nodes_adv b.l ~non)
         and es = (big_place_2_dig_edges b.p)@(big_link_2_dig_edges b.l non)
         in
@@ -82,22 +76,6 @@ let hash_string str =
                 and digL8 = Z.shift_left (Z.of_int64 digL8i64) 64
                 in
                     Z.add digF8 digL8
-(*
-let hash_string_512 str =
-    let digest = Sha512.string str
-    in
-    let digest_bin = Sha512.to_bin digest
-    in
-        let res = Z.of_bits digest_bin
-        in
-        (*(Sha512.to_hex digest ) |> print_endline;
-        "Big_hex:"^(Z.to_bits res |> Hex.of_string |> Hex.show )  |> print_endline ;*)
-        res
-    *)
-(*
-let average_of_chl sum num_of_chl =
-    Z.fdiv sum num_of_chl
-*)
 let hash_hash hsh =
     hash_string (Z.to_string hsh)
 let hash_of_single_node node children flag=
@@ -137,20 +115,7 @@ let rec hash_of_node node_id nodes adj_mx =
                         
                     )
                     children
-                Z.zero (*|> average_of_chl (Z.of_int num_of_chl)*)
-                (*in
-                let children_hash = IntSet.fold 
-                    (
-                        fun child_id sum -> 
-                            let hash_of_child = Hashtbl.find part_ress child_id
-                            in
-                                let div_between_avg = Z.min hash_of_child avg_among_children
-                                in
-                                Z.add sum div_between_avg
-                                
-                    )
-                    children
-                Z.zero*)
+                Z.zero
                 in
                     hash_of_single_node node_to_hash children_hash flag
 

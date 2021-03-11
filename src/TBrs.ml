@@ -1,68 +1,7 @@
 open Bigraph
 
 type react = { label:string; lhs:Big.t; rhs:Big.t; f_sm:Fun.t option; f_rnm:Fun.t}
-(*type t = { is:Big.t; os:Big.t ; rf:Fun.t ; p:Iso.t ; rl:string}*)
 module KeyMap = Map.Make(struct let compare = Z.compare type t = Z.t end)
-(*
-let trans_to_string t =
-    let init_state_label = "Input state:"
-    and res_state_label = "Output state:"
-    and residue_fun_label = "Residue fun:"
-    and participant_label = "Participants fun:"
-    in
-        let init_state = init_state_label^"\n"^(Big.to_string t.is)
-        and res_state = res_state_label^"\n"^(Big.to_string t.os)
-        and residue_fun = residue_fun_label^"\n"^(Fun.to_string t.rf)
-        and participants = participant_label^"\n"^(Iso.to_string t.p)
-        in
-            (String.concat "\n" [init_state;res_state;residue_fun;participants]);;
-*)
-(*
-let _REACT_LABEL_HEADER = "react label"
-let _STATE_INDEX_HEADER = "state index"
-let _STATE_HEADER = "state representation"
-let _INIT_STATE_INDEX_HEADER = "init state idx"
-let _RES_STATE_INDEX_HEADER = "res state idx"
-let _PARTICIPANT_HEADER = "init state 2 react_lhs iso"
-let _RESIDUE_HEADER = "residue of init in res state"
-let _RES_STATE_HEADER = "res state actual representation"
-let trans_header = [_INIT_STATE_INDEX_HEADER;_RES_STATE_INDEX_HEADER;_REACT_LABEL_HEADER;_PARTICIPANT_HEADER;_RESIDUE_HEADER;_RES_STATE_HEADER] 
-and states_header = [_STATE_INDEX_HEADER;_STATE_HEADER] 
-let transistions_to_losl its = 
-    let trans_rest = List.fold_left 
-        (
-            fun res (t,ii,ri) -> 
-                let isi = string_of_int ii
-                and rsi = string_of_int ri
-                and rl = t.rl
-                and p = (Iso.to_string t.p)
-                and rf = (Fun.to_string t.rf)
-                and rs = (Big.to_string t.os)
-                in
-                    let new_row = [isi;rsi;rl;p;rf;rs]
-                    in
-                        [new_row]@res
-        ) 
-        [] 
-        its
-        in
-            trans_rest
-let states_to_losl ius =
-    let states_rest = List.fold_left
-    (
-        fun res (b,i) ->
-            let state = Big.to_string b
-            and index = string_of_int i
-            in
-                let new_row = [index;state]
-                in
-                    [new_row]@res
-    )
-    []
-    ius
-    in
-        states_rest
-*) 
 let is_site_mapping_function_correct f_sm ~(lhs:Big.t) ~(rhs:Big.t) =
     let is_fsm_total = IntSet.equal (IntSet.of_int (rhs.p.s) ) (Fun.dom f_sm)
     and is_fsm_to_not_exceeding = IntSet.max_elt (Fun.codom f_sm) < Some (lhs.p.s)
@@ -264,7 +203,6 @@ let _filter_and_reindex_duplicatesV2 ~filter_of:rof ~filter_from:rfr transit_fun
         )
         ([],[]) in
         converted
-        
 let _apply_reindexing_exclude_rest loit ridx =
     List.fold_left
         (
@@ -511,20 +449,6 @@ let _generic_explore_ss_const_stack fun_gen_trans_and_unique_states rules ~(max_
         res_trans := new_trans :: !res_trans 
     done;
         !res_trans,!curr_checked_ref,!curr_unchecked_ref,!curr_step_ref
-(*
-let _append_trans_csv ?(first_time=false) trans file =
-    let out_channel = open_out_gen [Open_creat; Open_append] 666 file |> Csv.to_channel in
-    let transitions = transistions_to_losl trans in
-    let content = if first_time then trans_header :: transitions else transitions in
-    Csv.output_all out_channel content;
-    Csv.close_out out_channel
-let _save_states_csv states file =
-    let out_channel = open_out_gen [Open_creat; Open_append] 666 file |> Csv.to_channel in
-    let states_string = states_to_losl states in
-    let content = states_header :: states_string in
-    Csv.output_all out_channel content;
-    Csv.close_out out_channel
-*)
 let _unmap_key_of_result_state trans =
     List.map (fun (t,_,isi,rsi) -> t,isi,rsi) trans
 let _generic_explore_ss_const_stack_slim fun_gen_trans_and_states rules ~(max_steps:int) ~(current_step:int) ~checked ~unchecked c_us_sum transit_fun key_fun iso_fun trans_file =
@@ -543,12 +467,6 @@ let _generic_explore_ss_const_stack_slim fun_gen_trans_and_states rules ~(max_st
         res_trans_count := !res_trans_count + List.length new_trans
     done;
         !res_trans_count,!curr_checked_ref,!curr_unchecked_ref,!curr_step_ref
-(*let _iso d1 d2 = 
-    let g1 = Digraph.dig_2_graph d1 
-    and g2 = Digraph.dig_2_graph d2
-    in
-        Onauty.Iso.are_digraphs_iso ~check_colors:true g1 g2
-*)
 let _final_unmapping_of_states los= List.map (fun (b,_,i) -> b,i) los
 let _generic_explore_ss_facade fun_explore_ss tools (s0:Big.t) (rules:react list) (max_steps:int) =
     let transit_fun, key_fun, iso_fun = tools in
@@ -578,20 +496,6 @@ let _generic_explore_ss_slim_facade fun_explore_ss trans_file_name states_file_n
         result_checked_states,
         _final_unmapping_of_states ucs,
         nos
-(*
-let explore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,Digraph.are_digraphs_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
-    let gen_unique_states_fun = _generic_gen_unique_statesV2 List.mapi (fun x -> x) _merge_iso_bigs_and_reindexV2 in
-    let main_fun = _generic_gen_trans_and_unique_statesV2 _gen_semi_grouped_trans_from_states gen_unique_states_fun |> _generic_explore_ss in
-        _generic_explore_ss_facade main_fun tools s0 rules max_steps
-let explore_ss_const_explo_stack ?(tools = Digraph.big_2_dig,Digraph.hash_graph,Digraph.are_digraphs_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
-    let gen_unique_states_fun = _generic_gen_unique_statesV2 List.mapi (fun x -> x) _merge_iso_bigs_and_reindexV2 in
-    let main_fun = _generic_gen_trans_and_unique_statesV2 _gen_semi_grouped_trans_from_states gen_unique_states_fun |> _generic_explore_ss in
-        _generic_explore_ss_facade main_fun tools s0 rules max_steps
-let explore_ss_slim ?(trans_file_name=(string_of_float (Unix.time ()))^"trans.csv" ) ?(states_file_name=(string_of_float (Unix.time ()))^"states.csv" ) ?(tools = Digraph.big_2_dig,Digraph.hash_graph,Digraph.are_digraphs_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
-    let gen_unique_states_fun = _generic_gen_unique_statesV2 List.mapi (fun x -> x) _merge_iso_bigs_and_reindexV2 in
-    let main_fun = _generic_gen_trans_and_unique_statesV2 _gen_semi_grouped_trans_from_states gen_unique_states_fun |> _generic_explore_ss_const_stack_slim in
-        _generic_explore_ss_slim_facade main_fun trans_file_name states_file_name tools s0 rules max_steps
-*)
 let _pargen_semi_grouped_trans_from_states rules states transit_fun key_fun iso_fun =
     Parmap.parfold 
         (
@@ -636,7 +540,6 @@ let _pargen_unique_states ~grouped_indexed_trans ~known_unique_states ~new_unche
         new_trans, 
         new_unchecked_states_reindexed,
         (List.length new_unchecked_states_reindexed);;
-
 let _parreindex_results results shift = 
     Parmap.parmapi 
     (fun i (a,b) -> List.map (fun (x,y,z,w,_) -> x,y,z,w,i+shift ) a, List.map (fun (x,y,z,_) -> x,y,z,i+shift) b ) (Parmap.L results)
@@ -667,20 +570,6 @@ let _parmerge_iso_bigs_and_reindexV2 lobi transit_fun key_fun iso_fun =
         ) 
         ([],[]) 
         tmp_res
-(*
-let parexplore_ss ?(tools = Digraph.big_2_dig,Digraph.hash_graph,Digraph.are_digraphs_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
-    let gen_unique_states_fun = _generic_gen_unique_statesV2 List.mapi (fun x -> x) _merge_iso_bigs_and_reindexV2 in
-    let main_fun = _generic_gen_trans_and_unique_statesV2 _pargen_semi_grouped_trans_from_states gen_unique_states_fun |> _generic_explore_ss in
-        _generic_explore_ss_facade main_fun tools s0 rules max_steps
-let parexplore_ss_const_explo_stack ?(tools = Digraph.big_2_dig,Digraph.hash_graph,Digraph.are_digraphs_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
-    let gen_unique_states_fun = _generic_gen_unique_statesV2 List.mapi (fun x -> x) _merge_iso_bigs_and_reindexV2 in
-    let main_fun = _generic_gen_trans_and_unique_statesV2 _pargen_semi_grouped_trans_from_states gen_unique_states_fun |> _generic_explore_ss_const_stack in
-        _generic_explore_ss_facade main_fun tools s0 rules max_steps
-let parexplore_ss_slim ?(trans_file_name=(string_of_float (Unix.time ()))^"trans.csv" ) ?(states_file_name=(string_of_float (Unix.time ()))^"states.csv" ) ?(tools = Digraph.big_2_dig,Digraph.hash_graph,Digraph.are_digraphs_iso ) (s0:Big.t) (rules:react list) (max_steps:int) =
-    let gen_unique_states_fun = _generic_gen_unique_statesV2 Parmap.parmapi (fun x -> Parmap.L x) _merge_iso_bigs_and_reindexV3 in
-    let main_fun = _generic_gen_trans_and_unique_statesV2 _pargen_semi_grouped_trans_from_states gen_unique_states_fun |> _generic_explore_ss_const_stack_slim in
-        _generic_explore_ss_slim_facade main_fun trans_file_name states_file_name tools s0 rules max_steps
-*)
 module type TRS_gen =
     sig 
     type converted
