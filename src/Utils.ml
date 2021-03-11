@@ -54,3 +54,18 @@ let transform_rel_dom r i =
     Rel.empty
 let merge_rel_with_iso r i =
   Iso.fold (fun i1 i2 res -> Rel.add i1 (IntSet.singleton i2) res ) i r
+let _str_to_list_of_int_pairs str =
+  let pairs_regex = "\\([0-9]+\\s*,\\s*[0-9]+\\)" |> Str.regexp
+  and single_number_regex = "[0-9]+" |> Str.regexp in
+  let list_of_pairs_as_str = Str.split pairs_regex str in
+  List.map 
+    (fun pair_as_str -> 
+      let values = Str.split single_number_regex pair_as_str |> List.map (fun s -> int_of_string s) in
+      assert (List.length values = 2) ;
+      (List.nth values 0 ),(List.nth values 1)
+    )
+    list_of_pairs_as_str
+let iso_as_string_to_iso iso_as_str =
+  _str_to_list_of_int_pairs iso_as_str |> Iso.of_list
+let fun_as_string_to_fun iso_as_str =
+  _str_to_list_of_int_pairs iso_as_str |> Fun.of_list
