@@ -24,8 +24,8 @@ let test_parexplore_ss_1 _ =
                                 let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss) 
                                 and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
                                 in
-                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.Trans.is)
-                                    and  is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.Trans.os)
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TTS.is)
+                                    and  is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TTS.os)
                                     in
                                         assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
                         ) 
@@ -50,16 +50,16 @@ let test_parexplore_ss_2 _ =
                                 let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss)
                                 and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
                                 in
-                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.Trans.is)
-                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.Trans.os)
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TTS.is)
+                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TTS.os)
                                     in
                                         if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                                         (
                                         "Result "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
                                         "Result components, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
-                                        "Actual transition input state:\n"^(Big.to_string (t.Trans.is)) |> print_endline;
+                                        "Actual transition input state:\n"^(Big.to_string (t.TTS.is)) |> print_endline;
                                         "Indexed transition input state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
-                                        "Actual transition output state:\n"^(Big.to_string (t.Trans.os)) |> print_endline;
+                                        "Actual transition output state:\n"^(Big.to_string (t.TTS.os)) |> print_endline;
                                         "Indexed transition output state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;                 
                                         );
                                         assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
@@ -85,16 +85,16 @@ let test_parexplore_ss_3 _ =
                                 let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss)
                                 and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
                                 in
-                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.Trans.is)
-                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.Trans.os)
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TTS.is)
+                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TTS.os)
                                     in
                                         if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                                         (
                                         "Result "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
                                         "Result components, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
-                                        "Actual transition input state:\n"^(Big.to_string (t.Trans.is)) |> print_endline;
+                                        "Actual transition input state:\n"^(Big.to_string (t.TTS.is)) |> print_endline;
                                         "Indexed transition input state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
-                                        "Actual transition output state:\n"^(Big.to_string (t.Trans.os)) |> print_endline;
+                                        "Actual transition output state:\n"^(Big.to_string (t.TTS.os)) |> print_endline;
                                         "Indexed transition output state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;                  
                                         );
                                         assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
@@ -120,16 +120,16 @@ let test_parexplore_ss_4 _ =
                                 let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss)
                                 and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
                                 in
-                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.Trans.is)
-                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.Trans.os)
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TTS.is)
+                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TTS.os)
                                     in
                                         if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                                         (
                                         "Result "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
                                         "Result components, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
-                                        "Actual transition input state:\n"^(Big.to_string (t.Trans.is)) |> print_endline;
+                                        "Actual transition input state:\n"^(Big.to_string (t.TTS.is)) |> print_endline;
                                         "Indexed transition input state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
-                                        "Actual transition output state:\n"^(Big.to_string (t.Trans.os)) |> print_endline;
+                                        "Actual transition output state:\n"^(Big.to_string (t.TTS.os)) |> print_endline;
                                         "Indexed transition output state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;                    
                                         );
                                         assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
@@ -155,16 +155,16 @@ let test_parexplore_ss_5 _ =
                                 let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss)
                                 and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
                                 in
-                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.Trans.is)
-                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.Trans.os)
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TTS.is)
+                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TTS.os)
                                     in
                                         if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                                         (
                                         "Result "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
                                         "Result components, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
-                                        "Actual transition input state:\n"^(Big.to_string (t.Trans.is)) |> print_endline;
+                                        "Actual transition input state:\n"^(Big.to_string (t.TTS.is)) |> print_endline;
                                         "Indexed transition input state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
-                                        "Actual transition output state:\n"^(Big.to_string (t.Trans.os)) |> print_endline;
+                                        "Actual transition output state:\n"^(Big.to_string (t.TTS.os)) |> print_endline;
                                         "Indexed transition output state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;            
                                         );
                                         assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
