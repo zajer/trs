@@ -1,13 +1,22 @@
 open Bigraph
-type t = { is:Big.t; rs:Big.t ; rf:Fun.t ; p:Iso.t ; rl:string}
+
 type react
 
 val parse_react : string -> lhs:Big.t -> rhs:Big.t -> f_sm:Fun.t option -> f_rnm:Fun.t -> react
-val trans_to_string : t -> string
-val step : Big.t -> react list -> t list
-val step_grouped_iso_res : Big.t -> react list -> (Big.t * t list) list 
-val step_unified_res : Big.t -> react list -> (Big.t * t list) list 
-val apply_trr : Big.t -> react -> t list
-val apply_trr_with_occ : Big.t -> react -> Big.occ -> t
-val parexplore_ss : s0:Big.t -> rules:react list -> max_steps:int -> (t*int*int) list* (Big.t*int) list*(Big.t*int) list*int
+val step : Big.t -> react list -> TTS.trans_raw list
+val apply_trr : Big.t -> react -> TTS.trans_raw list
+val apply_trr_with_occ : Big.t -> react -> Big.occ -> TTS.trans_raw
+
+module type TRS_gen =
+    sig 
+    type converted
+    val explore_ss : ?tools : (Big.t -> converted)*(converted->Z.t)*(converted->converted->bool) -> Big.t -> react list -> int -> (TTS.trans_raw*int*int) list * (Big.t*int) list * (Big.t*int) list * int
+    val explore_ss_const_explo_stack : ?tools : (Big.t -> converted)*(converted->Z.t)*(converted->converted->bool) -> Big.t -> react list -> int -> (TTS.trans_raw*int*int) list * (Big.t*int) list * (Big.t*int) list * int
+    val explore_ss_slim : ?trans_file_name:string -> ?states_file_name:string -> ?tools : (Big.t -> converted)*(converted->Z.t)*(converted->converted->bool) -> Big.t -> react list -> int -> int * (Big.t*int) list * (Big.t*int) list * int
+    val parexplore_ss : ?tools : (Big.t -> converted)*(converted->Z.t)*(converted->converted->bool) -> Big.t -> react list -> int -> (TTS.trans_raw*int*int) list * (Big.t*int) list * (Big.t*int) list * int
+    val parexplore_ss_const_explo_stack : ?tools : (Big.t -> converted)*(converted->Z.t)*(converted->converted->bool) -> Big.t -> react list -> int -> (TTS.trans_raw*int*int) list * (Big.t*int) list * (Big.t*int) list * int
+    val parexplore_ss_slim : ?trans_file_name:string -> ?states_file_name:string -> ?tools : (Big.t -> converted)*(converted->Z.t)*(converted->converted->bool) -> Big.t -> react list -> int -> int * (Big.t*int) list * (Big.t*int) list * int
+end
+
+module Make ( T : Tools.ToolsBoilerplate) : TRS_gen with type converted = T.t
 

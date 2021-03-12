@@ -1,6 +1,6 @@
 (lang dune 2.0)
 (name tracking_bigraph)
-(version 0.5)
+(version 0.7.0)
 (generate_opam_files true)
 
 (source (github zajer/trs))
@@ -24,6 +24,8 @@
     bigraph
     parmap
     csv
+    onauty
+    zarith
     (ounit2 :with-test)
   )
 )

@@ -2,6 +2,6 @@
 (library
   (name tracking_bigraph)
   (public_name tracking_bigraph)
-  (libraries bigraph parmap csv )
+  (libraries bigraph parmap csv zarith onauty)
 )
 

@@ -2,6 +2,7 @@ open OUnit2
 
 open Bigraph
 open Tracking_bigraph
+module Digraph_TRS_gen = TBrs.Make(Tools.DigraphTools)
 
 let test_parexplore_ss_1 _ =
     let s0_to_parse ="{(0, A:0),(1, A:0),(2, B:0),(3, B:0)}\n0 4 0\n0010\n0001\n0000\n0000"
@@ -15,7 +16,7 @@ let test_parexplore_ss_1 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:10
+                let tl,ss,uss,_ = Digraph_TRS_gen.parexplore_ss s0 [react] 10
                 in
                     List.iteri
                         (
@@ -23,8 +24,8 @@ let test_parexplore_ss_1 _ =
                                 let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss) 
                                 and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
                                 in
-                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TBrs.is)
-                                    and  is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TBrs.rs)
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TTS.is)
+                                    and  is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TTS.os)
                                     in
                                         assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
                         ) 
@@ -41,7 +42,7 @@ let test_parexplore_ss_2 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:3
+                let tl,ss,uss,_ = Digraph_TRS_gen.parexplore_ss s0 [react] 3
                 in
                     List.iteri
                         (
@@ -49,17 +50,17 @@ let test_parexplore_ss_2 _ =
                                 let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss)
                                 and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
                                 in
-                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TBrs.is)
-                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TBrs.rs)
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TTS.is)
+                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TTS.os)
                                     in
                                         if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                                         (
                                         "Result "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
                                         "Result components, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
-                                        "Actual transition init state:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
-                                        "Indexed transition init state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
-                                        "Actual transition result state:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
-                                        "Indexed transition result state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;                 
+                                        "Actual transition input state:\n"^(Big.to_string (t.TTS.is)) |> print_endline;
+                                        "Indexed transition input state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
+                                        "Actual transition output state:\n"^(Big.to_string (t.TTS.os)) |> print_endline;
+                                        "Indexed transition output state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;                 
                                         );
                                         assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
                         ) 
@@ -76,7 +77,7 @@ let test_parexplore_ss_3 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:5
+                let tl,ss,uss,_ = Digraph_TRS_gen.parexplore_ss s0 [react] 5
                 in
                     List.iteri
                         (
@@ -84,17 +85,17 @@ let test_parexplore_ss_3 _ =
                                 let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss)
                                 and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
                                 in
-                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TBrs.is)
-                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TBrs.rs)
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TTS.is)
+                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TTS.os)
                                     in
                                         if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                                         (
                                         "Result "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
                                         "Result components, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
-                                        "Actual transition init state:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
-                                        "Indexed transition init state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
-                                        "Actual transition result state:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
-                                        "Indexed transition result state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;                  
+                                        "Actual transition input state:\n"^(Big.to_string (t.TTS.is)) |> print_endline;
+                                        "Indexed transition input state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
+                                        "Actual transition output state:\n"^(Big.to_string (t.TTS.os)) |> print_endline;
+                                        "Indexed transition output state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;                  
                                         );
                                         assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
                         ) 
@@ -111,7 +112,7 @@ let test_parexplore_ss_4 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:9
+                let tl,ss,uss,_ = Digraph_TRS_gen.parexplore_ss s0 [react] 9
                 in
                     List.iteri
                         (
@@ -119,17 +120,17 @@ let test_parexplore_ss_4 _ =
                                 let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss)
                                 and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
                                 in
-                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TBrs.is)
-                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TBrs.rs)
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TTS.is)
+                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TTS.os)
                                     in
                                         if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                                         (
                                         "Result "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
                                         "Result components, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
-                                        "Actual transition init state:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
-                                        "Indexed transition init state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
-                                        "Actual transition result state:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
-                                        "Indexed transition result state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;                    
+                                        "Actual transition input state:\n"^(Big.to_string (t.TTS.is)) |> print_endline;
+                                        "Indexed transition input state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
+                                        "Actual transition output state:\n"^(Big.to_string (t.TTS.os)) |> print_endline;
+                                        "Indexed transition output state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;                    
                                         );
                                         assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
                         ) 
@@ -146,7 +147,7 @@ let test_parexplore_ss_5 _ =
         in
             let react = TBrs.parse_react "yolo" ~lhs ~rhs ~f_rnm ~f_sm:None
             in
-                let tl,ss,uss,_ = TBrs.parexplore_ss ~s0 ~rules:[react] ~max_steps:15
+                let tl,ss,uss,_ = Digraph_TRS_gen.parexplore_ss s0 [react] 15
                 in
                     List.iteri
                         (
@@ -154,17 +155,17 @@ let test_parexplore_ss_5 _ =
                                 let init_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ii then true else false ) (ss@uss)
                                 and res_state_according_to_index,_ = List.find ( fun (_,i) -> if i = ri then true else false ) (ss@uss)
                                 in
-                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TBrs.is)
-                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TBrs.rs)
+                                    let is_init_in_trans_iso_to_indexed = Big.equal init_state_according_to_index (t.TTS.is)
+                                    and is_res_in_trans_iso_to_indexed = Big.equal res_state_according_to_index (t.TTS.os)
                                     in
                                         if not (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed ) then
                                         (
                                         "Result "^(string_of_int i)^": "^(string_of_bool (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed)) |> print_endline;
                                         "Result components, init:"^(string_of_bool is_init_in_trans_iso_to_indexed)^" , res:"^(string_of_bool is_res_in_trans_iso_to_indexed) |> print_endline;
-                                        "Actual transition init state:\n"^(Big.to_string (t.TBrs.is)) |> print_endline;
-                                        "Indexed transition init state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
-                                        "Actual transition result state:\n"^(Big.to_string (t.TBrs.rs)) |> print_endline;
-                                        "Indexed transition result state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;            
+                                        "Actual transition input state:\n"^(Big.to_string (t.TTS.is)) |> print_endline;
+                                        "Indexed transition input state:\n"^(Big.to_string (init_state_according_to_index)) |> print_endline;
+                                        "Actual transition output state:\n"^(Big.to_string (t.TTS.os)) |> print_endline;
+                                        "Indexed transition output state:\n"^(Big.to_string (res_state_according_to_index)) |> print_endline;            
                                         );
                                         assert_equal true (is_init_in_trans_iso_to_indexed && is_res_in_trans_iso_to_indexed )
                         ) 
@@ -181,3 +182,4 @@ let suite =
 
 let () =
     run_test_tt_main suite
+    
