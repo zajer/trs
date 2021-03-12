@@ -39,9 +39,10 @@ apt install minisat zlib1g
 opam install menhir jsonm cmdliner
 ```
 
-<sup>1</sup> It works with version `0.0.2` according to: https://bitbucket.org/uog-bigraph/bigraph-tools/downloads/?tab=tags
+<sup>1</sup> It has been verified to work with version `0.0.2` according to: https://bitbucket.org/uog-bigraph/bigraph-tools/downloads/?tab=tags
 
 ## Usage
 
 See the file(s) in the `example` folder.
-For more in depth description of 
+
+For more in depth description of the idea behind this tool and possible use case scenarios please refer to this paper: https://www.mdpi.com/1424-8220/21/2/622
