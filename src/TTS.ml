@@ -100,6 +100,15 @@ let import_states file_name =
         {bigraph=Big.of_string bigraph_str;index=(int_of_string idx_str)}
     )
     states_as_string_lists
+let parimport_states file_name =
+  let states_as_string_lists = Csv.load file_name in
+    Parmap.parmap 
+    ( 
+      fun los -> 
+        let bigraph_str,idx_str = _list_of_string_to_2_tuple_of_strings los in
+        {bigraph=Big.of_string bigraph_str;index=(int_of_string idx_str)}
+    )
+    (Parmap.L states_as_string_lists)
 let _list_of_string_to_5_tuple_of_strings los =
   if List.length los <> 5 then
     raise (Invalid_argument "A valid row has to have exactly five columns")
@@ -127,4 +136,17 @@ let import_transitions file_name =
           { in_state_idx;out_state_idx;react_label;participants;residue;actual_out_state}
     )
     transitions_as_string_lists
-  
+let parimport_transitions file_name = 
+  let transitions_as_string_lists = Csv.load file_name in
+  Parmap.parmap
+    (
+      fun los -> 
+        let in_state_idx_str,out_state_idx_str,react_label,participants_str,residue_str,actual_out_state_str = _list_of_string_to_5_tuple_of_strings los in
+          let in_state_idx = int_of_string in_state_idx_str
+          and out_state_idx = int_of_string out_state_idx_str
+          and participants = Utils.iso_as_string_to_iso participants_str
+          and residue = Utils.fun_as_string_to_fun residue_str
+          and actual_out_state = Big.of_string actual_out_state_str in
+          { in_state_idx;out_state_idx;react_label;participants;residue;actual_out_state}
+    )
+    (Parmap.L transitions_as_string_lists)

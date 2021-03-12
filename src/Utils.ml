@@ -54,18 +54,26 @@ let transform_rel_dom r i =
     Rel.empty
 let merge_rel_with_iso r i =
   Iso.fold (fun i1 i2 res -> Rel.add i1 (IntSet.singleton i2) res ) i r
-let _str_to_list_of_int_pairs str =
-  let pairs_regex = "\\([0-9]+\\s*,\\s*[0-9]+\\)" |> Str.regexp
+let _extract_first_two_occurences str regex =
+  let _ = Str.search_forward regex str 0 in
+  let next_start_position = Str.match_end () 
+  and first_match = Str.matched_string str in
+  let _ = Str.search_forward regex str next_start_position in
+  let second_match = Str.matched_string str in
+    first_match,second_match
+let rec _str_to_list_of_int_pairs str start_position accu =
+  let pairs_regex = "[0-9]+[ ]*,[ ]*[0-9]+" |> Str.regexp 
   and single_number_regex = "[0-9]+" |> Str.regexp in
-  let list_of_pairs_as_str = Str.split pairs_regex str in
-  List.map 
-    (fun pair_as_str -> 
-      let values = Str.split single_number_regex pair_as_str |> List.map (fun s -> int_of_string s) in
-      assert (List.length values = 2) ;
-      (List.nth values 0 ),(List.nth values 1)
-    )
-    list_of_pairs_as_str
+  try
+    let _ = Str.search_forward pairs_regex str start_position in
+      let str_matched = Str.matched_string str
+      and new_start_position = Str.match_end () in
+        let v1_as_str,v2_as_str = _extract_first_two_occurences str_matched single_number_regex in
+        let v1 = int_of_string v1_as_str
+        and v2 = int_of_string v2_as_str in
+          _str_to_list_of_int_pairs str new_start_position ((v1,v2)::accu)
+  with Not_found -> accu
 let iso_as_string_to_iso iso_as_str =
-  _str_to_list_of_int_pairs iso_as_str |> Iso.of_list
+  _str_to_list_of_int_pairs iso_as_str 0 [] |> Iso.of_list
 let fun_as_string_to_fun iso_as_str =
-  _str_to_list_of_int_pairs iso_as_str |> Fun.of_list
+  _str_to_list_of_int_pairs iso_as_str 0 [] |> Fun.of_list

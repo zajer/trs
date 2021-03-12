@@ -8,5 +8,6 @@ val export_ss_csv : ?trans_file_name:string -> ?states_file_name:string -> (tran
 val append_trans_csv : ?first_time:bool -> (trans_raw*int*int) list -> string -> unit
 val save_states_csv : (Big.t*int) list -> string -> unit
 val import_states : string -> state list
+val parimport_states : string -> state list
 val import_transitions : string -> trans_exported list
-(*val parimport_transitions : string -> trans_exported list*)
+val parimport_transitions : string -> trans_exported list
