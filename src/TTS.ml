@@ -3,18 +3,34 @@ open Bigraph
 type trans_raw = { is:Big.t; os:Big.t ; rf:Fun.t ; p:Iso.t ; rl:string}
 type trans_exported = { in_state_idx:int;out_state_idx:int; react_label:string;participants:Iso.t;residue:Fun.t;actual_out_state:Big.t }
 type state = { bigraph:Big.t;index:int }
-let trans_to_string t =
+let raw_trans_to_string t =
   let init_state_label = "Input state:"
   and res_state_label = "Output state:"
   and residue_fun_label = "Residue fun:"
   and participant_label = "Participants fun:"
+  and react_label = "React label:"
   in
       let init_state = init_state_label^"\n"^(Big.to_string t.is)
       and res_state = res_state_label^"\n"^(Big.to_string t.os)
       and residue_fun = residue_fun_label^"\n"^(Fun.to_string t.rf)
       and participants = participant_label^"\n"^(Iso.to_string t.p)
+      and react = react_label^"\n"^(t.rl)
       in
-          (String.concat "\n" [init_state;res_state;residue_fun;participants]);;
+          (String.concat "\n" [init_state;res_state;residue_fun;participants;react]);;
+let exported_trans_to_string t =
+  let init_state_label = "Input state idx:"
+  and res_state_label = "Output state idx:"
+  and residue_fun_label = "Residue fun:"
+  and participant_label = "Participants fun:"
+  and react_label = "React label:"
+  in
+      let init_state = init_state_label^" "^( string_of_int t.in_state_idx)
+      and res_state = res_state_label^" "^( string_of_int t.out_state_idx)
+      and react = react_label^" "^(t.react_label)
+      and residue_fun = residue_fun_label^" "^(Fun.to_string t.residue)
+      and participants = participant_label^" "^(Iso.to_string t.participants)
+      in
+          (String.concat "||" [init_state;res_state;react;participants;residue_fun;]);;
 let _REACT_LABEL_HEADER = "react label"
 let _STATE_INDEX_HEADER = "state index"
 let _STATE_REPRESENTATION_HEADER = "state representation"
@@ -91,26 +107,26 @@ let _list_of_string_to_2_tuple_of_strings los =
       and idx_str = List.nth los 1 in
       bigraph_str,idx_str
     )
+let _parse_single_exported_state = 
+  fun los -> 
+    let idx_str,bigraph_str = _list_of_string_to_2_tuple_of_strings los in
+    {bigraph=Big.of_string bigraph_str;index=(int_of_string idx_str)}
 let import_states file_name =
-  let states_as_string_lists = Csv.load file_name in
+  let states_as_string_lists = Csv.load file_name |> List.tl in
     List.map 
     ( 
-      fun los -> 
-        let bigraph_str,idx_str = _list_of_string_to_2_tuple_of_strings los in
-        {bigraph=Big.of_string bigraph_str;index=(int_of_string idx_str)}
+      _parse_single_exported_state
     )
     states_as_string_lists
 let parimport_states file_name =
-  let states_as_string_lists = Csv.load file_name in
+  let states_as_string_lists = Csv.load file_name |> List.tl in
     Parmap.parmap 
     ( 
-      fun los -> 
-        let bigraph_str,idx_str = _list_of_string_to_2_tuple_of_strings los in
-        {bigraph=Big.of_string bigraph_str;index=(int_of_string idx_str)}
+      _parse_single_exported_state
     )
     (Parmap.L states_as_string_lists)
-let _list_of_string_to_5_tuple_of_strings los =
-  if List.length los <> 5 then
+let _list_of_string_to_6_tuple_of_strings los =
+  if List.length los <> 6 then
     raise (Invalid_argument "A valid row has to have exactly five columns")
   else
     (
@@ -122,31 +138,26 @@ let _list_of_string_to_5_tuple_of_strings los =
       and actual_out_state_str = List.nth los 5 in
       in_state_idx_str,out_state_idx_str,react_label_str,participants_str,residue_str,actual_out_state_str
     )
+let _parse_single_exported_transition = 
+  fun los -> 
+    let in_state_idx_str,out_state_idx_str,react_label,participants_str,residue_str,actual_out_state_str = _list_of_string_to_6_tuple_of_strings los in
+      let in_state_idx = int_of_string in_state_idx_str
+      and out_state_idx = int_of_string out_state_idx_str
+      and participants = Utils.iso_as_string_to_iso participants_str
+      and residue = Utils.fun_as_string_to_fun residue_str
+      and actual_out_state = Big.of_string actual_out_state_str in
+      { in_state_idx;out_state_idx;react_label;participants;residue;actual_out_state}
 let import_transitions file_name = 
-  let transitions_as_string_lists = Csv.load file_name in
+  let transitions_as_string_lists = Csv.load file_name |> List.tl in
   List.map
     (
-      fun los -> 
-        let in_state_idx_str,out_state_idx_str,react_label,participants_str,residue_str,actual_out_state_str = _list_of_string_to_5_tuple_of_strings los in
-          let in_state_idx = int_of_string in_state_idx_str
-          and out_state_idx = int_of_string out_state_idx_str
-          and participants = Utils.iso_as_string_to_iso participants_str
-          and residue = Utils.fun_as_string_to_fun residue_str
-          and actual_out_state = Big.of_string actual_out_state_str in
-          { in_state_idx;out_state_idx;react_label;participants;residue;actual_out_state}
+      _parse_single_exported_transition
     )
     transitions_as_string_lists
 let parimport_transitions file_name = 
-  let transitions_as_string_lists = Csv.load file_name in
+  let transitions_as_string_lists = Csv.load file_name |> List.tl in
   Parmap.parmap
     (
-      fun los -> 
-        let in_state_idx_str,out_state_idx_str,react_label,participants_str,residue_str,actual_out_state_str = _list_of_string_to_5_tuple_of_strings los in
-          let in_state_idx = int_of_string in_state_idx_str
-          and out_state_idx = int_of_string out_state_idx_str
-          and participants = Utils.iso_as_string_to_iso participants_str
-          and residue = Utils.fun_as_string_to_fun residue_str
-          and actual_out_state = Big.of_string actual_out_state_str in
-          { in_state_idx;out_state_idx;react_label;participants;residue;actual_out_state}
+      _parse_single_exported_transition
     )
     (Parmap.L transitions_as_string_lists)

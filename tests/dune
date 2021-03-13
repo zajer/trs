@@ -4,6 +4,7 @@
         TBig_tests
         Utils_tests
         TBrs_tests
+        TTS_tests
     ) 
     (modes native)
     (libraries tracking_bigraph ounit2 )
