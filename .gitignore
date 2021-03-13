@@ -4,5 +4,4 @@ _build
 *.install
 *.svg
 *.dot
-*.csv
 *.opam
