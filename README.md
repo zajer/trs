@@ -23,6 +23,7 @@ git clone https://github.com/zajer/conf-nauty/
 cd conf-nauty
 opam install .
 cd ..
+git clone --depth 1 --branch v0.0.2 https://bitbucket.org/uog-bigraph/bigraph-tools uog-bigraph-tools-0.0.2
 cd uog-bigraph-tools-0.0.2
 dune build --profile=release
 dune install --profile=release
@@ -32,14 +33,19 @@ opam install csv zarith parmap ounit2
 dune build --profile=release
 dune install --profile=release
 ```
-
+### Troubleshooting with installation
 In case installing `bigraph-tools` results in errors, below are some additional steps that may help in solving them:
 ```
-apt install minisat zlib1g
+apt install minisat zlib1g-dev
 opam install menhir jsonm cmdliner
 ```
+If for some reason building `minisat` fails with ``library dune.configurator not found`` here is what fixed this for me: 
+```
+opam install .
+```
+Please note that the above command won't succeed. It merely allows to proceed with installation of `bigraph-tools` by installing/configuring its dependencies. In my case it was the lack of `dune.configurator`.
 
-<sup>1</sup> It has been verified to work with version `0.0.2` according to: https://bitbucket.org/uog-bigraph/bigraph-tools/downloads/?tab=tags
+<sup>1</sup> It has been verified to work with version `0.0.2`. Versioning according to: https://bitbucket.org/uog-bigraph/bigraph-tools/downloads/?tab=tags
 
 ## Usage
 
