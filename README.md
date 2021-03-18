@@ -33,6 +33,31 @@ opam install csv zarith parmap ounit2
 dune build --profile=release
 dune install --profile=release
 ```
+
+### Installing library so it is listed as an OPAM package
+If you want to install both libraries (`bigraph` and `tracking_bigraph`) so they are listed in opam via ``opam list`` you can do it with a minor tweak.
+
+ - Once you clone bigraph-tools go to the project root directory;
+ - Open ``dune-project`` file;
+ - Add the following line before package definitions:
+        
+        (name bigrapher)
+    At the time of writing this, the begining of the file will look similar to this:
+    ```
+    (lang dune 2.5)
+    (source (uri https://bitbucket.org/uog-bigraph/bigraph-tools/))
+    (license BSD-3-Clause)
+    (authors "Michele Sevegnani" "Blair Archibald")
+    (maintainers "michele.sevegnani@glasgow.ac.uk")
+    (homepage "http://www.dcs.gla.ac.uk/~michele/bigrapher.html")
+    (documentation "http://www.dcs.gla.ac.uk/~michele/doc/index.html")
+    (generate_opam_files true)
+    (name bigrapher)
+    
+    ```
+ - Now instead of installing both libraries with ``dune install --profile=release`` you can do it with ``opam install .``
+
+
 ### Troubleshooting with installation
 In case installing `bigraph-tools` results in errors, below are some additional steps that may help in solving them:
 ```
