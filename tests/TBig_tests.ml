@@ -2,6 +2,28 @@ open OUnit2
 open Bigraph
 open Tracking_bigraph
 open TBig_tests_data
+let test_translate_equal_1 _ =
+  let b0 = Big.of_string test_translate_equal_1_b0_str
+  and b0_iso = Big.of_string test_translate_equal_1_b0_iso_str in
+  let result_translation = TBig.translate_equal ~from_b:b0 ~to_b:b0_iso 
+  and expected_translation = [(0,1);(1,2);(2,3);(3,0);(4,4);(5,5)] |> Iso.of_list in
+  assert_equal
+    ~msg:"Result translation is not equal to expected"
+    ~printer:Iso.to_string
+    ~cmp:Iso.equal
+    expected_translation
+    result_translation
+let test_translate_equal_2 _ =
+  let b0 = Big.of_string test_translate_equal_1_b0_str
+  and b0_iso = Big.of_string test_translate_equal_1_b0_iso_str in
+  let result_translation = TBig.translate_equal ~to_b:b0 ~from_b:b0_iso 
+  and expected_translation = [(0,1);(1,2);(2,3);(3,0);(4,4);(5,5)] |> Iso.of_list |> Iso.inverse in
+  assert_equal
+    ~msg:"Result translation is not equal to expected"
+    ~printer:Iso.to_string
+    ~cmp:Iso.equal
+    expected_translation
+    result_translation
 let test_prepare_fun_of_residue_1 _ =
   let i_t2c = Iso.empty |> Iso.add 0 0 |> Iso.add 1 1 
   and i_p2t = Iso.empty |> Iso.add 0 2 |> Iso.add 1 3 |> Iso.add 2 4
@@ -149,13 +171,15 @@ let test_rewrite_5_eta _ =
             res_fun
 let suite =
   "TBig tests" >::: [
+    "Translate support of equal bigraphs 1">:: test_translate_equal_1;
+    "Translate support of equal bigraphs 2">:: test_translate_equal_2;
     "Prepare function of residue 1">:: test_prepare_fun_of_residue_1;
     "Rewrite 1 no eta">:: test_rewrite_1_no_eta;
     "Rewrite 2 eta-cloning">:: test_rewrite_2_eta;
     "Rewrite 3 eta-cloning">:: test_rewrite_3_eta;
     "Rewrite 4 no eta-not all mapped">:: test_rewrite_4_no_eta;
     "Rewrite 5 eta-not all mapped">:: test_rewrite_5_eta;
-]
+  ]
 
 let () =
   run_test_tt_main suite
