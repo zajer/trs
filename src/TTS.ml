@@ -147,8 +147,8 @@ let _parse_single_exported_transition =
       and residue = Utils.fun_as_string_to_fun residue_str
       and actual_out_state = Big.of_string actual_out_state_str in
       { in_state_idx;out_state_idx;react_label;participants;residue;actual_out_state}
-let import_transitions file_name = 
-  let transitions_as_string_lists = Csv.load file_name |> List.tl in
+let import_transitions ?(headers_in_first_row=true) file_name = 
+  let transitions_as_string_lists = Csv.load file_name |> if headers_in_first_row then List.tl else (fun x -> x) in
   List.map
     (
       _parse_single_exported_transition

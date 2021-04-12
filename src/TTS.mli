@@ -10,5 +10,5 @@ val append_trans_csv : ?first_time:bool -> (trans_raw*int*int) list -> string ->
 val save_states_csv : (Big.t*int) list -> string -> unit
 val import_states : string -> state list
 val parimport_states : string -> state list
-val import_transitions : string -> trans_exported list
+val import_transitions : ?headers_in_first_row:bool -> string -> trans_exported list
 val parimport_transitions : string -> trans_exported list

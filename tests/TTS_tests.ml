@@ -49,10 +49,31 @@ let test_transitions_import_1 _ =
     ~msg:"Imported transition do not match with the expected"
     ~printer:(fun tl -> List.fold_left (fun accu t -> accu^(TTS.exported_trans_to_string t)^"\n" ) "" tl )
     ~cmp:_compare_transitions_lists expected_transitions imported_transitions
+let test_transitions_import_2 _ =
+  let expected_transition = 
+    { 
+      TTS.in_state_idx=0;
+      out_state_idx=1;
+      react_label="my_react";
+      participants=(Iso.of_list [(0,0);(1,1)]);
+      residue = (Fun.of_list [(0,0);(1,1);(3,1)]);
+      actual_out_state = (Big.of_string import_states_1_expected_big_1)
+    }
+  in
+  let imported_transitions = TTS.import_transitions ~headers_in_first_row:false "transitions_headerless.csv" 
+  and expected_transitions = [expected_transition] 
+  in
+  assert_equal ~msg:"There should be one imported transition" 1 (List.length imported_transitions);
+  assert_equal 
+    ~msg:"Imported transition do not match with the expected"
+    ~printer:(fun tl -> List.fold_left (fun accu t -> accu^(TTS.exported_trans_to_string t)^"\n" ) "" tl )
+    ~cmp:_compare_transitions_lists expected_transitions imported_transitions
+
 let suite =
   "TTS tests" >::: [
     "Test import states 1">:: test_states_import_1;
     "Test import transitions 1">:: test_transitions_import_1;
+    "Test import transitions 2">:: test_transitions_import_2;
 ]
 
 let () =
